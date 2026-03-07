@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent, type DragEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent, type DragEvent } from "react";
 import type { ConvertedFile } from "../../lib/imagemagick";
 import styles from "./ImageConverterTool.module.css";
 
@@ -11,8 +11,8 @@ async function getImageMagick() {
   return imagemagick;
 }
 
-const LOSSY_FORMATS = new Set(["jpg", "psd"]);
-const OUTPUT_FORMATS = [
+const LOSSY_FORMATS = new Set(["jpg", "psd", "heic", "heif"]);
+const FALLBACK_OUTPUT_FORMATS = [
   { ext: "png", label: "PNG" },
   { ext: "jpg", label: "JPEG" },
   { ext: "gif", label: "GIF" },
@@ -26,8 +26,8 @@ const OUTPUT_FORMATS = [
   { ext: "hdr", label: "HDR" },
   { ext: "pcx", label: "PCX" },
 ];
-const INPUT_EXTENSION_PATTERN = /\.(psd|tga|bmp|tiff?|ico|pcx|pgm|ppm|hdr|xcf|gif)$/i;
-const ACCEPTED_INPUTS = "image/*,.psd,.tga,.bmp,.tiff,.ico,.pcx,.pgm,.ppm,.hdr,.xcf";
+const INPUT_EXTENSION_PATTERN = /\.(heic|heif|psd|tga|bmp|tiff?|ico|pcx|pgm|ppm|hdr|xcf|gif)$/i;
+const ACCEPTED_INPUTS = "image/*,.heic,.heif,.psd,.tga,.bmp,.tiff,.ico,.pcx,.pgm,.ppm,.hdr,.xcf";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -43,6 +43,7 @@ export default function ImageConverterTool() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [convertedFiles, setConvertedFiles] = useState<ConvertedFile[]>([]);
   const [outputFormat, setOutputFormat] = useState("png");
+  const [outputFormats, setOutputFormats] = useState(FALLBACK_OUTPUT_FORMATS);
   const [quality, setQuality] = useState(90);
   const [resize, setResize] = useState("");
   const [stripMetadata, setStripMetadata] = useState(false);
@@ -53,6 +54,35 @@ export default function ImageConverterTool() {
 
   const hasFiles = selectedFiles.length > 0;
   const showQuality = useMemo(() => LOSSY_FORMATS.has(outputFormat), [outputFormat]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const { getAvailableOutputFormats } = await getImageMagick();
+        const availableFormats = await getAvailableOutputFormats();
+        if (!availableFormats.length || cancelled) {
+          return;
+        }
+
+        const nextFormats = availableFormats.map((format) => ({ ext: format.ext, label: format.label }));
+        setOutputFormats(nextFormats);
+        setOutputFormat((prev) => {
+          if (nextFormats.some((format) => format.ext === prev)) {
+            return prev;
+          }
+          return nextFormats[0].ext;
+        });
+      } catch {
+        // Keep fallback options when format probing fails.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function addFiles(files: File[]) {
     const nextFiles = files.filter(isAcceptedImage);
@@ -200,7 +230,7 @@ export default function ImageConverterTool() {
             <p className="font-display text-sm font-semibold text-text-primary">
               Drop images here or <span className="text-accent-purple">browse</span>
             </p>
-            <p className="mt-1.5 text-xs text-text-muted">PNG, JPG, GIF, BMP, TIFF, PSD, ICO, TGA and more</p>
+            <p className="mt-1.5 text-xs text-text-muted">PNG, JPG, GIF, BMP, TIFF, HEIC, PSD, ICO, TGA and more</p>
             <p className="mt-1 text-xs text-text-muted">Multiple files supported for batch conversion</p>
           </div>
         </div>
@@ -277,7 +307,7 @@ export default function ImageConverterTool() {
                     onChange={(e) => setOutputFormat(e.target.value)}
                     className="w-full rounded-lg border border-border-card bg-bg-secondary px-3 py-2 text-sm text-text-primary outline-none transition-all focus:border-border-card-hover focus:ring-1 focus:ring-border-card-hover"
                   >
-                    {OUTPUT_FORMATS.map((format) => (
+                    {outputFormats.map((format) => (
                       <option key={format.ext} value={format.ext}>
                         {format.label}
                       </option>

@@ -6,7 +6,7 @@ import ImageConverterTool from "../../components/image-converter/ImageConverterT
 
 const pageTitle = "Image Converter — LocalKit";
 const pageDescription =
-  "Batch convert images between PNG, JPG, GIF, BMP, TIFF, and more. All processing happens locally in your browser — your files never leave your device.";
+  "Batch convert images between PNG, JPG, GIF, BMP, TIFF, HEIC, and more. All processing happens locally in your browser — your files never leave your device.";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -29,9 +29,6 @@ const jsonLd = {
 <Layout title={pageTitle} description={pageDescription}>
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
-    <!-- Prefetch wasm assets in idle time so conversion starts faster -->
-    <link rel="prefetch" href="/magick/magick.js" as="script" />
-    <link rel="prefetch" href="/magick/magick.wasm" as="fetch" crossorigin />
   </Fragment>
   <Navbar />
 
@@ -59,7 +56,7 @@ const jsonLd = {
           </div>
           <div>
             <h1 class="font-display text-2xl font-bold text-text-primary">Image Converter</h1>
-            <p class="text-sm text-text-muted">Batch convert between PNG, JPG, GIF, BMP, TIFF, and more</p>
+            <p class="text-sm text-text-muted">Batch convert between PNG, JPG, GIF, BMP, TIFF, HEIC, and more</p>
           </div>
         </div>
       </div>
