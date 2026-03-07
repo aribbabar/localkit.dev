@@ -1,0 +1,62 @@
+---
+// ToolCard — individual tool card with icon, title, and description
+
+interface Props {
+  title: string;
+  description: string;
+  icon: string;
+  accentColor: string;
+  href?: string;
+}
+
+const { title, description, icon, accentColor, href = "#" } = Astro.props;
+
+const colorMap: Record<string, { bg: string; border: string; text: string; glow: string }> = {
+  purple: { bg: "bg-accent-purple/10", border: "border-accent-purple/20", text: "text-accent-purple", glow: "group-hover:shadow-[0_0_30px_rgba(168,85,247,0.08)]" },
+  blue: { bg: "bg-accent-blue/10", border: "border-accent-blue/20", text: "text-accent-blue", glow: "group-hover:shadow-[0_0_30px_rgba(59,130,246,0.08)]" },
+  red: { bg: "bg-accent-red/10", border: "border-accent-red/20", text: "text-accent-red", glow: "group-hover:shadow-[0_0_30px_rgba(239,68,68,0.08)]" },
+  orange: { bg: "bg-accent-orange/10", border: "border-accent-orange/20", text: "text-accent-orange", glow: "group-hover:shadow-[0_0_30px_rgba(249,115,22,0.08)]" },
+  teal: { bg: "bg-accent-teal/10", border: "border-accent-teal/20", text: "text-accent-teal", glow: "group-hover:shadow-[0_0_30px_rgba(20,184,166,0.08)]" },
+  pink: { bg: "bg-accent-pink/10", border: "border-accent-pink/20", text: "text-accent-pink", glow: "group-hover:shadow-[0_0_30px_rgba(236,72,153,0.08)]" },
+  cyan: { bg: "bg-accent-cyan/10", border: "border-accent-cyan/20", text: "text-accent-cyan", glow: "group-hover:shadow-[0_0_30px_rgba(6,182,212,0.08)]" },
+  indigo: { bg: "bg-accent-indigo/10", border: "border-accent-indigo/20", text: "text-accent-indigo", glow: "group-hover:shadow-[0_0_30px_rgba(99,102,241,0.08)]" },
+  green: { bg: "bg-accent-green/10", border: "border-accent-green/20", text: "text-accent-green", glow: "group-hover:shadow-[0_0_30px_rgba(34,197,94,0.08)]" },
+};
+
+const colors = colorMap[accentColor] || colorMap.purple;
+---
+
+<a
+  href={href}
+  class:list={[
+    "group relative flex flex-col rounded-xl border border-border-card bg-bg-card p-5 transition-all duration-300",
+    "hover:border-border-card-hover hover:bg-bg-card-hover",
+    colors.glow,
+  ]}
+>
+  <!-- Accent line at top -->
+  <div class:list={["absolute top-0 left-6 right-6 h-px", colors.bg]} style={`background: linear-gradient(90deg, transparent, var(--color-accent-${accentColor}), transparent); opacity: 0.3;`}></div>
+
+  <!-- Icon -->
+  <div class:list={["mb-4 flex h-10 w-10 items-center justify-center rounded-lg border", colors.bg, colors.border]}>
+    <span class:list={["text-lg", colors.text]} set:html={icon} />
+  </div>
+
+  <!-- Content -->
+  <h3 class="font-display text-sm font-semibold text-text-primary mb-2">
+    {title}
+  </h3>
+  <p class="text-xs leading-relaxed text-text-muted line-clamp-2">
+    {description}
+  </p>
+
+  <!-- Hover arrow -->
+  <div class="mt-auto pt-4">
+    <span class:list={["inline-flex items-center gap-1 text-xs font-medium opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-1", colors.text]}>
+      Open tool
+      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+      </svg>
+    </span>
+  </div>
+</a>
