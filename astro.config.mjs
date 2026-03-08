@@ -10,8 +10,8 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
     optimizeDeps: {
-      include: ['jszip'],
-      exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util', 'mupdf']
+      include: ['jszip', 'compromise'],
+      exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util', 'mupdf', '@huggingface/transformers']
     },
   },
 
