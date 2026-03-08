@@ -75,6 +75,8 @@ export default function InfoRedactorApp() {
     setResult(null);
     setEntities([]);
     setRedactedText("");
+    // PDFs always use black box redaction
+    if (ext === "pdf") setStyle("blackbox");
     setStep("configure");
 
     // Extract text for preview
@@ -372,7 +374,18 @@ export default function InfoRedactorApp() {
             </div>
           </div>
 
-          {/* Redaction style */}
+          {/* Redaction style — only for text/md files; PDFs always use black box */}
+          {isPdf ? (
+            <div className="rounded-xl border border-border-card bg-bg-card p-5">
+              <h3 className="font-display mb-1 text-sm font-semibold text-text-primary">
+                Redaction Style
+              </h3>
+              <p className="text-xs text-text-muted">
+                PDF redactions use black box overlay — the original text is permanently
+                removed and replaced with an opaque rectangle.
+              </p>
+            </div>
+          ) : (
           <div className="rounded-xl border border-border-card bg-bg-card p-5">
             <h3 className="font-display mb-1 text-sm font-semibold text-text-primary">
               Redaction Style
@@ -435,6 +448,7 @@ export default function InfoRedactorApp() {
               </button>
             </div>
           </div>
+          )}
 
           {/* Scan button */}
           <button

@@ -408,7 +408,6 @@ export async function redactPdf(
   ) as MuPDFModule.PDFDocument;
 
   const pageCount = doc.countPages();
-  const useBlackBoxes = style === "blackbox";
 
   for (let i = 0; i < pageCount; i++) {
     const page = doc.loadPage(i) as MuPDFModule.PDFPage;
@@ -443,7 +442,8 @@ export async function redactPdf(
       }
     }
 
-    page.applyRedactions(useBlackBoxes);
+    // PDF redactions always use black boxes (MuPDF limitation)
+    page.applyRedactions(true);
     onProgress?.(i + 1, pageCount);
   }
 
