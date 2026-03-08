@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { validateSvg, hasAnimation } from "../../lib/svg";
 
 type BgMode = "dark" | "light" | "checker";
 
@@ -22,18 +23,6 @@ const BG_STYLES: Record<BgMode, React.CSSProperties> = {
     backgroundColor: "#0f1029",
   },
 };
-
-function validateSvg(code: string): string | null {
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(code, "image/svg+xml");
-    const parseError = doc.querySelector("parsererror");
-    if (parseError) return "Invalid SVG markup";
-    return null;
-  } catch {
-    return "Failed to parse SVG";
-  }
-}
 
 export default function SvgViewerTool() {
   const [svgCode, setSvgCode] = useState("");
@@ -68,11 +57,8 @@ export default function SvgViewerTool() {
   }, [displayCode, isPlaceholder]);
 
   // Detect if SVG has animations
-  const hasAnimation = useMemo(() => {
-    return (
-      /(<animate|<animateTransform|<animateMotion|<set\s)/i.test(displayCode) ||
-      /@keyframes|animation:|animation-name:/i.test(displayCode)
-    );
+  const isAnimated = useMemo(() => {
+    return hasAnimation(displayCode);
   }, [displayCode]);
 
   // Toggle animation pause/play via iframe document
@@ -185,7 +171,7 @@ export default function SvgViewerTool() {
         </div>
 
         {/* Animation controls */}
-        {hasAnimation && (
+        {isAnimated && (
           <button
             onClick={() => setIsPaused((p) => !p)}
             className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all border ${
@@ -271,7 +257,7 @@ export default function SvgViewerTool() {
         <div className="mb-1.5 flex items-center justify-between">
           <label className="text-xs font-medium text-text-secondary">SVG Code</label>
           <div className="flex gap-2">
-            {hasAnimation && !isPlaceholder && (
+            {isAnimated && !isPlaceholder && (
               <span className="inline-flex items-center gap-1 rounded-md bg-accent-cyan/10 px-2 py-0.5 text-xs text-accent-cyan">
                 <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
