@@ -11,7 +11,7 @@ export default defineConfig({
     plugins: [tailwindcss()],
     optimizeDeps: {
       include: ['jszip', 'compromise'],
-      exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util', 'mupdf', '@huggingface/transformers']
+      exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util', 'mupdf', '@huggingface/transformers', '@wasm-fmt/clang-format']
     },
   },
 

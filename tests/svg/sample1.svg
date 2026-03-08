@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <style>
+    .wheel {
+      transform-origin: center;
+      animation: spin 1.5s linear infinite;
+    }
+    .bike-assembly {
+      animation: bob 0.5s ease-in-out infinite;
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes bob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    @keyframes roadMove {
+      100% { stroke-dashoffset: -100; }
+    }
+    .road {
+      stroke-dasharray: 50 50;
+      animation: roadMove 0.5s linear infinite;
+    }
+  </style>
+
+  <rect width="800" height="500" fill="#e0f7fa" />
+
+  <line x1="0" y1="400" x2="800" y2="400" stroke="#555" stroke-width="12" />
+  <line x1="0" y1="400" x2="800" y2="400" stroke="#fff" stroke-width="4" class="road" />
+
+  <g class="bike-assembly">
+    
+    <g transform="translate(250, 350)" class="wheel">
+      <circle cx="0" cy="0" r="50" fill="transparent" stroke="#333" stroke-width="8" />
+      <circle cx="0" cy="0" r="46" fill="transparent" stroke="#ccc" stroke-width="2" />
+      <line x1="-46" y1="0" x2="46" y2="0" stroke="#888" stroke-width="2" />
+      <line x1="0" y1="-46" x2="0" y2="46" stroke="#888" stroke-width="2" />
+      <line x1="-32" y1="-32" x2="32" y2="32" stroke="#888" stroke-width="2" />
+      <line x1="-32" y1="32" x2="32" y2="-32" stroke="#888" stroke-width="2" />
+    </g>
+
+    <g transform="translate(550, 350)" class="wheel">
+      <circle cx="0" cy="0" r="50" fill="transparent" stroke="#333" stroke-width="8" />
+      <circle cx="0" cy="0" r="46" fill="transparent" stroke="#ccc" stroke-width="2" />
+      <line x1="-46" y1="0" x2="46" y2="0" stroke="#888" stroke-width="2" />
+      <line x1="0" y1="-46" x2="0" y2="46" stroke="#888" stroke-width="2" />
+      <line x1="-32" y1="-32" x2="32" y2="32" stroke="#888" stroke-width="2" />
+      <line x1="-32" y1="32" x2="32" y2="-32" stroke="#888" stroke-width="2" />
+    </g>
+
+    <path d="M 250 350 L 320 230 L 480 230 L 550 350" fill="none" stroke="#e74c3c" stroke-width="8" stroke-linejoin="round" />
+    <path d="M 320 230 L 400 350 L 250 350" fill="none" stroke="#e74c3c" stroke-width="8" stroke-linejoin="round" />
+    <path d="M 400 350 L 480 230" fill="none" stroke="#e74c3c" stroke-width="8" stroke-linejoin="round" />
+    
+    <line x1="320" y1="230" x2="320" y2="200" stroke="#ccc" stroke-width="6" />
+    <ellipse cx="320" cy="195" rx="25" ry="8" fill="#222" />
+
+    <line x1="480" y1="230" x2="480" y2="180" stroke="#ccc" stroke-width="6" />
+    <path d="M 460 180 Q 480 160 500 180" fill="none" stroke="#222" stroke-width="8" stroke-linecap="round" />
+
+    <circle cx="400" cy="350" r="15" fill="#555" />
+    <line x1="400" y1="350" x2="400" y2="380" stroke="#888" stroke-width="6" stroke-linecap="round" />
+    <rect x="385" y="375" width="30" height="10" rx="3" fill="#222" />
+
+    <path d="M 300 190 Q 220 200 200 280 Q 210 290 220 270 Q 240 210 320 190" fill="#2ecc71" />
+    
+    <path d="M 340 195 Q 360 250 395 375" fill="none" stroke="#27ae60" stroke-width="12" stroke-linecap="round" />
+
+    <path d="M 310 190 Q 380 140 450 160 Q 440 180 340 205" fill="#2ecc71" />
+
+    <path d="M 420 165 Q 450 180 475 175" fill="none" stroke="#27ae60" stroke-width="10" stroke-linecap="round" />
+
+    <ellipse cx="465" cy="150" rx="25" ry="15" fill="#2ecc71" transform="rotate(-15 465 150)" />
+    <polygon points="485,145 505,148 488,155" fill="#2ecc71" /> 
+    
+    <circle cx="470" cy="145" r="4" fill="#fff" />
+    <circle cx="472" cy="145" r="2" fill="#000" />
+    
+    <polygon points="340,178 345,165 350,175" fill="#f1c40f" />
+    <polygon points="360,168 365,155 370,165" fill="#f1c40f" />
+    <polygon points="380,161 385,148 390,158" fill="#f1c40f" />
+    <polygon points="400,156 405,143 410,154" fill="#f1c40f" />
+
+  </g>
+</svg>

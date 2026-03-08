@@ -17,10 +17,12 @@
     "@tailwindcss/vite": "^4.2.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@wasm-fmt/clang-format": "^22.1.0",
     "astro": "^5.17.1",
     "compromise": "^14.15.0",
     "jszip": "^3.10.1",
     "mupdf": "^1.27.0",
+    "prettier": "^3.8.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwindcss": "^4.2.1"
