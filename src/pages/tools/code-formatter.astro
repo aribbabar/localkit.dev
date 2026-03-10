@@ -6,7 +6,7 @@ import CodeFormatterApp from "../../components/code-formatter/CodeFormatterApp";
 
 const pageTitle = "Code Formatter — LocalKit";
 const pageDescription =
-  "Format and beautify code in 25+ languages — JavaScript, TypeScript, HTML, CSS, C, C++, Java, C#, JSON, YAML, Markdown, and more. Powered by Prettier and clang-format, 100% in your browser.";
+  "Format, syntax-highlight, and export beautiful code images in 20+ languages — JavaScript, TypeScript, HTML, CSS, C, C++, Java, C#, JSON, YAML, and more. Powered by Prettier, clang-format, and Shiki, 100% in your browser.";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -18,11 +18,13 @@ const jsonLd = {
   operatingSystem: "Any (browser-based)",
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   featureList: [
-    "Format JavaScript, JSX, TypeScript, TSX, and Flow",
-    "Format HTML, Vue, Angular, and Ember/Handlebars templates",
+    "Format JavaScript, JSX, TypeScript, and TSX",
+    "Format HTML, Vue, Angular, and Handlebars templates",
     "Format CSS, Less, and SCSS stylesheets",
     "Format JSON, GraphQL, YAML, Markdown, and MDX",
     "Format C, C++, Java, C#, Objective-C, and Protobuf",
+    "Syntax highlighting with 20+ themes powered by Shiki",
+    "Export beautiful Carbon-style code images",
     "Configurable Prettier and clang-format options",
     "Multiple clang-format style presets (LLVM, Google, Chromium, etc.)",
     "100% client-side processing with WebAssembly",
@@ -65,7 +67,7 @@ const jsonLd = {
           </div>
           <div>
             <h1 class="font-display text-2xl font-bold text-text-primary">Code Formatter</h1>
-            <p class="text-sm text-text-muted">Beautify code in 25+ languages with Prettier & clang-format</p>
+            <p class="text-sm text-text-muted">Format, highlight & export code images in 20+ languages</p>
           </div>
         </div>
       </div>

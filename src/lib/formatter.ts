@@ -11,6 +11,8 @@ export interface LanguageDef {
   label: string;
   engine: Engine;
   group: string;
+  /** Shiki language id for syntax highlighting */
+  shikiLang: string;
   /** Prettier parser name */
   parser?: string;
   /** clang-format: filename hint so it picks the right grammar */
@@ -26,7 +28,9 @@ export const LANGUAGES: LanguageDef[] = [
     label: "JavaScript",
     engine: "prettier",
     group: "JavaScript / TypeScript",
+    shikiLang: "javascript",
     parser: "babel",
+    filename: "main.js",
     placeholder: `const greet=(name)=>{return "Hello, "+name+"!"}
 greet("world")`,
   },
@@ -35,7 +39,9 @@ greet("world")`,
     label: "JSX",
     engine: "prettier",
     group: "JavaScript / TypeScript",
+    shikiLang: "jsx",
     parser: "babel",
+    filename: "main.jsx",
     placeholder: `const App=()=>{return <div className="app"><h1>Hello</h1><p>World</p></div>}`,
   },
   {
@@ -43,7 +49,9 @@ greet("world")`,
     label: "TypeScript",
     engine: "prettier",
     group: "JavaScript / TypeScript",
+    shikiLang: "typescript",
     parser: "typescript",
+    filename: "main.ts",
     placeholder: `interface User{name:string;age:number}
 function greet(user:User):string{return "Hello, "+user.name}`,
   },
@@ -52,38 +60,10 @@ function greet(user:User):string{return "Hello, "+user.name}`,
     label: "TSX",
     engine: "prettier",
     group: "JavaScript / TypeScript",
+    shikiLang: "tsx",
     parser: "typescript",
+    filename: "main.tsx",
     placeholder: `const App:React.FC<{title:string}>=({title})=>{return <div><h1>{title}</h1></div>}`,
-  },
-  {
-    id: "flow",
-    label: "Flow",
-    engine: "prettier",
-    group: "JavaScript / TypeScript",
-    parser: "babel-flow",
-    placeholder: `// @flow
-function square(n: number): number {return n*n}`,
-  },
-  // ── Prettier: Angular / Vue ───────────────────────────────────────
-  {
-    id: "angular",
-    label: "Angular",
-    engine: "prettier",
-    group: "Markup",
-    parser: "angular",
-    placeholder: `<div *ngIf="show"><app-header [title]="pageTitle" (click)="onHeaderClick($event)"></app-header></div>`,
-  },
-  {
-    id: "vue",
-    label: "Vue",
-    engine: "prettier",
-    group: "Markup",
-    parser: "vue",
-    placeholder: `<template><div class="app"><h1>{{ title }}</h1><p v-if="show">Hello</p></div></template>
-<script setup>
-import {ref} from 'vue'
-const title=ref('Hello World')
-</script>`,
   },
   // ── Prettier: Markup ──────────────────────────────────────────────
   {
@@ -91,15 +71,43 @@ const title=ref('Hello World')
     label: "HTML",
     engine: "prettier",
     group: "Markup",
+    shikiLang: "html",
     parser: "html",
+    filename: "index.html",
     placeholder: `<html><head><title>Page</title></head><body><div class="container"><h1>Hello World</h1><p>This is a paragraph.</p></div></body></html>`,
   },
   {
-    id: "handlebars",
-    label: "Ember / Handlebars",
+    id: "vue",
+    label: "Vue",
     engine: "prettier",
     group: "Markup",
+    shikiLang: "vue",
+    parser: "vue",
+    filename: "App.vue",
+    placeholder: `<template><div class="app"><h1>{{ title }}</h1><p v-if="show">Hello</p></div></template>
+<script setup>
+import {ref} from 'vue'
+const title=ref('Hello World')
+</script>`,
+  },
+  {
+    id: "angular",
+    label: "Angular",
+    engine: "prettier",
+    group: "Markup",
+    shikiLang: "angular-html",
+    parser: "angular",
+    filename: "app.component.html",
+    placeholder: `<div *ngIf="show"><app-header [title]="pageTitle" (click)="onHeaderClick($event)"></app-header></div>`,
+  },
+  {
+    id: "handlebars",
+    label: "Handlebars",
+    engine: "prettier",
+    group: "Markup",
+    shikiLang: "handlebars",
     parser: "glimmer",
+    filename: "template.hbs",
     placeholder: `<div class="greeting">{{#if isLoggedIn}}<h1>Welcome back, {{user.name}}!</h1>{{else}}<h1>Please log in</h1>{{/if}}</div>`,
   },
   // ── Prettier: Styles ──────────────────────────────────────────────
@@ -108,7 +116,9 @@ const title=ref('Hello World')
     label: "CSS",
     engine: "prettier",
     group: "Styles",
+    shikiLang: "css",
     parser: "css",
+    filename: "style.css",
     placeholder: `.container{display:flex;justify-content:center;align-items:center;gap:1rem}
 .container .item{padding:8px 16px;border-radius:4px;background:#f0f0f0}`,
   },
@@ -117,7 +127,9 @@ const title=ref('Hello World')
     label: "Less",
     engine: "prettier",
     group: "Styles",
+    shikiLang: "less",
     parser: "less",
+    filename: "style.less",
     placeholder: `@primary:#333;.container{color:@primary;.item{padding:8px;background:lighten(@primary,50%)}}`,
   },
   {
@@ -125,7 +137,9 @@ const title=ref('Hello World')
     label: "SCSS",
     engine: "prettier",
     group: "Styles",
+    shikiLang: "scss",
     parser: "scss",
+    filename: "style.scss",
     placeholder: `$primary:#333;.container{color:$primary;.item{padding:8px;background:lighten($primary,50%)}}`,
   },
   // ── Prettier: Data / Config ───────────────────────────────────────
@@ -134,7 +148,9 @@ const title=ref('Hello World')
     label: "JSON",
     engine: "prettier",
     group: "Data / Config",
+    shikiLang: "json",
     parser: "json",
+    filename: "data.json",
     placeholder: `{"name":"project","version":"1.0.0","dependencies":{"react":"^19.0.0","typescript":"^5.0.0"},"scripts":{"dev":"vite","build":"vite build"}}`,
   },
   {
@@ -142,7 +158,9 @@ const title=ref('Hello World')
     label: "GraphQL",
     engine: "prettier",
     group: "Data / Config",
+    shikiLang: "graphql",
     parser: "graphql",
+    filename: "query.graphql",
     placeholder: `query GetUser($id:ID!){user(id:$id){name email posts{title createdAt}}}`,
   },
   {
@@ -150,7 +168,9 @@ const title=ref('Hello World')
     label: "YAML",
     engine: "prettier",
     group: "Data / Config",
+    shikiLang: "yaml",
     parser: "yaml",
+    filename: "config.yaml",
     placeholder: `name: project
 version: 1.0.0
 dependencies:
@@ -163,7 +183,9 @@ dependencies:
     label: "Markdown",
     engine: "prettier",
     group: "Prose",
+    shikiLang: "markdown",
     parser: "markdown",
+    filename: "README.md",
     placeholder: `#  Hello World
 This is a paragraph with **bold** and *italic* text.
 
@@ -180,7 +202,9 @@ This is a paragraph with **bold** and *italic* text.
     label: "MDX",
     engine: "prettier",
     group: "Prose",
+    shikiLang: "mdx",
     parser: "mdx",
+    filename: "page.mdx",
     placeholder: `import {Chart} from './components'
 
 #  Dashboard
@@ -195,6 +219,7 @@ Some **markdown** content here.`,
     label: "C",
     engine: "clang-format",
     group: "C / C++",
+    shikiLang: "c",
     filename: "main.c",
     placeholder: `#include <stdio.h>
 int main(){printf("Hello World!\\n");return 0;}`,
@@ -204,6 +229,7 @@ int main(){printf("Hello World!\\n");return 0;}`,
     label: "C++",
     engine: "clang-format",
     group: "C / C++",
+    shikiLang: "cpp",
     filename: "main.cpp",
     placeholder: `#include <iostream>
 using namespace std;
@@ -214,6 +240,7 @@ auto main() -> int{std::cout << "Hello World!" << std::endl;return 0;}`,
     label: "Java",
     engine: "clang-format",
     group: "JVM / .NET",
+    shikiLang: "java",
     filename: "Main.java",
     placeholder: `public class Main{public static void main(String[] args){System.out.println("Hello World!");}}`,
   },
@@ -222,6 +249,7 @@ auto main() -> int{std::cout << "Hello World!" << std::endl;return 0;}`,
     label: "C#",
     engine: "clang-format",
     group: "JVM / .NET",
+    shikiLang: "csharp",
     filename: "Main.cs",
     placeholder: `using System;class Program{static void Main(){Console.WriteLine("Hello World!");}}`,
   },
@@ -230,6 +258,7 @@ auto main() -> int{std::cout << "Hello World!" << std::endl;return 0;}`,
     label: "Objective-C",
     engine: "clang-format",
     group: "C / C++",
+    shikiLang: "objective-c",
     filename: "main.m",
     placeholder: `#import <Foundation/Foundation.h>
 int main(int argc,const char*argv[]){@autoreleasepool{NSLog(@"Hello World!");}return 0;}`,
@@ -239,27 +268,44 @@ int main(int argc,const char*argv[]){@autoreleasepool{NSLog(@"Hello World!");}re
     label: "Protobuf",
     engine: "clang-format",
     group: "Data / Config",
+    shikiLang: "proto",
     filename: "main.proto",
     placeholder: `syntax="proto3";
 message Person{string name=1;int32 id=2;string email=3;}`,
   },
-  {
-    id: "js-clang",
-    label: "JavaScript (clang)",
-    engine: "clang-format",
-    group: "JavaScript / TypeScript",
-    filename: "main.js",
-    placeholder: `function greet(name){return "Hello, "+name+"!"}
-greet("world")`,
-  },
-  {
-    id: "json-clang",
-    label: "JSON (clang)",
-    engine: "clang-format",
-    group: "Data / Config",
-    filename: "main.json",
-    placeholder: `{"name":"project","version":"1.0.0","dependencies":{"react":"^19.0.0"}}`,
-  },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Shiki themes                                                       */
+/* ------------------------------------------------------------------ */
+
+export interface ThemeDef {
+  id: string;
+  label: string;
+  type: "dark" | "light";
+}
+
+export const THEMES: ThemeDef[] = [
+  { id: "github-dark", label: "GitHub Dark", type: "dark" },
+  { id: "github-light", label: "GitHub Light", type: "light" },
+  { id: "dracula", label: "Dracula", type: "dark" },
+  { id: "nord", label: "Nord", type: "dark" },
+  { id: "one-dark-pro", label: "One Dark Pro", type: "dark" },
+  { id: "catppuccin-mocha", label: "Catppuccin Mocha", type: "dark" },
+  { id: "catppuccin-latte", label: "Catppuccin Latte", type: "light" },
+  { id: "vitesse-dark", label: "Vitesse Dark", type: "dark" },
+  { id: "vitesse-light", label: "Vitesse Light", type: "light" },
+  { id: "monokai", label: "Monokai", type: "dark" },
+  { id: "tokyo-night", label: "Tokyo Night", type: "dark" },
+  { id: "solarized-dark", label: "Solarized Dark", type: "dark" },
+  { id: "solarized-light", label: "Solarized Light", type: "light" },
+  { id: "min-dark", label: "Min Dark", type: "dark" },
+  { id: "min-light", label: "Min Light", type: "light" },
+  { id: "synthwave-84", label: "Synthwave '84", type: "dark" },
+  { id: "night-owl", label: "Night Owl", type: "dark" },
+  { id: "rose-pine", label: "Rosé Pine", type: "dark" },
+  { id: "rose-pine-dawn", label: "Rosé Pine Dawn", type: "light" },
+  { id: "houston", label: "Houston", type: "dark" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -341,7 +387,6 @@ async function getPrettier() {
     prettierPlugins = Promise.all([
       import("prettier/plugins/babel"),
       import("prettier/plugins/estree"),
-      import("prettier/plugins/flow"),
       import("prettier/plugins/typescript"),
       import("prettier/plugins/angular"),
       import("prettier/plugins/html"),
@@ -368,6 +413,31 @@ async function getClang(): Promise<ClangFormat> {
     })();
   }
   return clangPromise;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Syntax highlighting (shiki)                                        */
+/* ------------------------------------------------------------------ */
+
+let shikiPromise: Promise<typeof import("shiki")> | null = null;
+
+function getShiki() {
+  if (!shikiPromise) {
+    shikiPromise = import("shiki");
+  }
+  return shikiPromise;
+}
+
+export async function highlightCode(
+  source: string,
+  lang: LanguageDef,
+  themeId: string,
+): Promise<string> {
+  const shiki = await getShiki();
+  return shiki.codeToHtml(source, {
+    lang: lang.shikiLang,
+    theme: themeId,
+  });
 }
 
 /* ------------------------------------------------------------------ */

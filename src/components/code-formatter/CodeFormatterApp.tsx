@@ -1,10 +1,12 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import {
   LANGUAGES,
+  THEMES,
   DEFAULT_PRETTIER_OPTIONS,
   DEFAULT_CLANG_OPTIONS,
   CLANG_PRESETS,
   formatCode,
+  highlightCode,
   type LanguageDef,
   type PrettierUserOptions,
   type ClangUserOptions,
@@ -14,7 +16,54 @@ import {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-/** Group languages by their `group` field, preserving insertion order. */
+const STORAGE_KEY = "localkit:code-formatter";
+
+interface SavedSettings {
+  langId: string;
+  themeId: string;
+  prettierOpts: PrettierUserOptions;
+  clangOpts: ClangUserOptions;
+  showLineNumbers: boolean;
+  imageBackground: string;
+  imagePadding: number;
+}
+
+const IMAGE_BACKGROUNDS = [
+  { id: "gradient-blue", label: "Ocean", css: "linear-gradient(145deg, #0a2463 0%, #1e6091 50%, #168aad 100%)" },
+  { id: "gradient-purple", label: "Nebula", css: "linear-gradient(145deg, #2d1b69 0%, #6b21a8 50%, #a855f7 100%)" },
+  { id: "gradient-green", label: "Forest", css: "linear-gradient(145deg, #1a2e1a 0%, #2d5a27 50%, #4ade80 100%)" },
+  { id: "gradient-sunset", label: "Sunset", css: "linear-gradient(145deg, #7f1d1d 0%, #c2410c 50%, #f59e0b 100%)" },
+  { id: "gradient-nord", label: "Nord", css: "linear-gradient(145deg, #2e3440 0%, #3b4252 50%, #434c5e 100%)" },
+  { id: "gradient-rose", label: "Rose", css: "linear-gradient(145deg, #4c0519 0%, #9f1239 50%, #f43f5e 100%)" },
+  { id: "gradient-cyan", label: "Cyan", css: "linear-gradient(145deg, #083344 0%, #155e75 50%, #22d3ee 100%)" },
+  { id: "solid-dark", label: "Dark", css: "#1a1b26" },
+  { id: "solid-black", label: "Black", css: "#000000" },
+  { id: "solid-white", label: "White", css: "#f8fafc" },
+  { id: "transparent", label: "None", css: "transparent" },
+] as const;
+
+function loadSettings(): Partial<SavedSettings> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed.langId && !LANGUAGES.find((l) => l.id === parsed.langId)) {
+      parsed.langId = undefined;
+    }
+    return parsed;
+  } catch {
+    return {};
+  }
+}
+
+function saveSettings(settings: SavedSettings) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // Storage full or unavailable
+  }
+}
+
 function groupLanguages() {
   const groups = new Map<string, LanguageDef[]>();
   for (const lang of LANGUAGES) {
@@ -30,20 +79,51 @@ function groupLanguages() {
 /* ------------------------------------------------------------------ */
 
 export default function CodeFormatterApp() {
-  const [langId, setLangId] = useState("javascript");
+  const saved = useMemo(loadSettings, []);
+
+  const [langId, setLangId] = useState(saved.langId ?? "javascript");
+  const [themeId, setThemeId] = useState(saved.themeId ?? "github-dark");
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
+  const [highlightedHtml, setHighlightedHtml] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [formatting, setFormatting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
+  const [exportingImage, setExportingImage] = useState(false);
+  const [showLineNumbers, setShowLineNumbers] = useState(saved.showLineNumbers ?? true);
+  const [imageBackground, setImageBackground] = useState(saved.imageBackground ?? "gradient-blue");
+  const [imagePadding, setImagePadding] = useState(saved.imagePadding ?? 48);
 
-  const [prettierOpts, setPrettierOpts] = useState<PrettierUserOptions>(DEFAULT_PRETTIER_OPTIONS);
-  const [clangOpts, setClangOpts] = useState<ClangUserOptions>(DEFAULT_CLANG_OPTIONS);
+  const [prettierOpts, setPrettierOpts] = useState<PrettierUserOptions>({
+    ...DEFAULT_PRETTIER_OPTIONS,
+    ...saved.prettierOpts,
+  });
+  const [clangOpts, setClangOpts] = useState<ClangUserOptions>({
+    ...DEFAULT_CLANG_OPTIONS,
+    ...saved.clangOpts,
+  });
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const imageRef = useRef<HTMLDivElement>(null);
   const grouped = useMemo(groupLanguages, []);
   const lang = LANGUAGES.find((l) => l.id === langId)!;
+  const bgDef = IMAGE_BACKGROUNDS.find((b) => b.id === imageBackground)!;
+
+  // Persist settings
+  useEffect(() => {
+    saveSettings({ langId, themeId, prettierOpts, clangOpts, showLineNumbers, imageBackground, imagePadding });
+  }, [langId, themeId, prettierOpts, clangOpts, showLineNumbers, imageBackground, imagePadding]);
+
+  // Re-highlight when theme changes and there's output
+  useEffect(() => {
+    if (!output) return;
+    let cancelled = false;
+    highlightCode(output, lang, themeId).then((html) => {
+      if (!cancelled) setHighlightedHtml(html);
+    });
+    return () => { cancelled = true; };
+  }, [themeId, output, lang]);
 
   /* ── Actions ──────────────────────────────────────────────────── */
 
@@ -54,13 +134,16 @@ export default function CodeFormatterApp() {
     try {
       const result = await formatCode(input, lang, prettierOpts, clangOpts);
       setOutput(result);
+      const html = await highlightCode(result, lang, themeId);
+      setHighlightedHtml(html);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
       setOutput("");
+      setHighlightedHtml("");
     } finally {
       setFormatting(false);
     }
-  }, [input, lang, prettierOpts, clangOpts]);
+  }, [input, lang, prettierOpts, clangOpts, themeId]);
 
   const handleCopy = useCallback(() => {
     if (!output) return;
@@ -82,11 +165,32 @@ export default function CodeFormatterApp() {
     URL.revokeObjectURL(url);
   }, [output, lang]);
 
+  const handleDownloadImage = useCallback(async () => {
+    if (!imageRef.current || !output) return;
+    setExportingImage(true);
+    try {
+      const { toPng } = await import("html-to-image");
+      const dataUrl = await toPng(imageRef.current, {
+        pixelRatio: 2,
+        skipAutoScale: true,
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `code-${lang.id}.png`;
+      a.click();
+    } catch (err) {
+      console.error("Image export failed:", err);
+    } finally {
+      setExportingImage(false);
+    }
+  }, [output, lang.id]);
+
   const handleLangChange = useCallback(
     (id: string) => {
       const newLang = LANGUAGES.find((l) => l.id === id)!;
       setLangId(id);
       setOutput("");
+      setHighlightedHtml("");
       setError(null);
       if (!input.trim()) {
         setInput(newLang.placeholder);
@@ -97,7 +201,6 @@ export default function CodeFormatterApp() {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      // Allow Tab key to insert tab/spaces in textarea
       if (e.key === "Tab") {
         e.preventDefault();
         const ta = e.currentTarget;
@@ -112,7 +215,6 @@ export default function CodeFormatterApp() {
           ta.selectionStart = ta.selectionEnd = start + indent.length;
         });
       }
-      // Ctrl/Cmd + Enter to format
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         handleFormat();
@@ -125,24 +227,45 @@ export default function CodeFormatterApp() {
 
   return (
     <div className="space-y-5">
-      {/* ── Language selector ─────────────────────────────────────── */}
-      <div>
-        <label className="mb-1.5 block text-xs font-medium text-text-secondary">Language</label>
-        <select
-          value={langId}
-          onChange={(e) => handleLangChange(e.target.value)}
-          className="w-full rounded-lg border border-border-card bg-bg-secondary px-3 py-2 text-sm text-text-primary focus:border-accent-teal/40 focus:outline-none focus:ring-1 focus:ring-accent-teal/20 transition-colors"
-        >
-          {[...grouped.entries()].map(([group, langs]) => (
-            <optgroup key={group} label={group}>
-              {langs.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.label}
-                </option>
+      {/* ── Language + Theme selectors ────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-text-secondary">Language</label>
+          <select
+            value={langId}
+            onChange={(e) => handleLangChange(e.target.value)}
+            className="w-full rounded-lg border border-border-card bg-bg-secondary px-3 py-2 text-sm text-text-primary focus:border-accent-teal/40 focus:outline-none focus:ring-1 focus:ring-accent-teal/20 transition-colors"
+          >
+            {[...grouped.entries()].map(([group, langs]) => (
+              <optgroup key={group} label={group}>
+                {langs.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-text-secondary">Theme</label>
+          <select
+            value={themeId}
+            onChange={(e) => setThemeId(e.target.value)}
+            className="w-full rounded-lg border border-border-card bg-bg-secondary px-3 py-2 text-sm text-text-primary focus:border-accent-teal/40 focus:outline-none focus:ring-1 focus:ring-accent-teal/20 transition-colors"
+          >
+            <optgroup label="Dark">
+              {THEMES.filter((t) => t.type === "dark").map((t) => (
+                <option key={t.id} value={t.id}>{t.label}</option>
               ))}
             </optgroup>
-          ))}
-        </select>
+            <optgroup label="Light">
+              {THEMES.filter((t) => t.type === "light").map((t) => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </optgroup>
+          </select>
+        </div>
       </div>
 
       {/* ── Options toggle ────────────────────────────────────────── */}
@@ -242,6 +365,16 @@ export default function CodeFormatterApp() {
             <label className="text-xs font-medium text-text-secondary">Formatted output</label>
             <div className="flex gap-2">
               <button
+                onClick={handleDownloadImage}
+                disabled={exportingImage}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:text-accent-purple hover:bg-accent-purple/10 disabled:opacity-40"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+                </svg>
+                {exportingImage ? "Exporting..." : "Image"}
+              </button>
+              <button
                 onClick={handleDownload}
                 className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:text-text-secondary hover:bg-bg-secondary"
               >
@@ -272,11 +405,138 @@ export default function CodeFormatterApp() {
               </button>
             </div>
           </div>
-          <pre className="w-full rounded-lg border border-border-card bg-bg-card/60 px-3 py-2.5 font-mono text-sm text-text-primary overflow-x-auto max-h-[500px] overflow-y-auto leading-relaxed">
-            {output}
-          </pre>
+
+          {/* Syntax-highlighted output */}
+          <div
+            className="shiki-output w-full rounded-lg border border-border-card overflow-x-auto max-h-[500px] overflow-y-auto [&_pre]:!rounded-lg [&_pre]:!px-4 [&_pre]:!py-3 [&_pre]:!m-0 [&_code]:!text-sm [&_code]:!leading-relaxed [&_code]:!font-mono"
+            dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+          />
+
+          {/* ── Image Export Settings ─────────────────────────────── */}
+          <div className="mt-4 rounded-lg border border-border-card bg-bg-card/60 p-4 space-y-3">
+            <p className="text-xs font-medium text-text-secondary">Image export settings</p>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
+              <ToggleOption
+                label="Line Numbers"
+                value={showLineNumbers}
+                onChange={setShowLineNumbers}
+              />
+              <NumberOption
+                label="Padding"
+                value={imagePadding}
+                onChange={setImagePadding}
+                min={16}
+                max={96}
+              />
+              <div className="col-span-2 sm:col-span-1">
+                <label className="flex items-center justify-between gap-2 text-xs text-text-secondary">
+                  <span className="shrink-0">Background</span>
+                  <select
+                    value={imageBackground}
+                    onChange={(e) => setImageBackground(e.target.value)}
+                    className="rounded border border-border-card bg-bg-secondary px-2 py-1 text-xs text-text-primary focus:border-accent-teal/40 focus:outline-none min-w-0"
+                  >
+                    {IMAGE_BACKGROUNDS.map((b) => (
+                      <option key={b.id} value={b.id}>{b.label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            {/* ── Carbon-style Preview ──────────────────────────────── */}
+            <div className="mt-3 overflow-x-auto rounded-lg border border-border-card">
+              <div
+                ref={imageRef}
+                style={{
+                  background: bgDef.css,
+                  padding: `${imagePadding}px`,
+                  minWidth: "fit-content",
+                }}
+              >
+                <div
+                  className="rounded-xl overflow-hidden shadow-2xl"
+                  style={{ minWidth: "max-content" }}
+                >
+                  {/* Title bar */}
+                  <div
+                    className="flex items-center gap-2 px-4 py-3"
+                    style={{ background: "rgba(0,0,0,0.3)" }}
+                  >
+                    <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+                    <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+                    <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+                    <span className="flex-1 text-center text-xs text-white/40 font-mono">
+                      {lang.filename ?? `code.${lang.id}`}
+                    </span>
+                    <span className="w-[52px]" />
+                  </div>
+
+                  {/* Code area */}
+                  <CodeImageContent
+                    code={output}
+                    highlightedHtml={highlightedHtml}
+                    showLineNumbers={showLineNumbers}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Code image content (for Carbon-style export)                       */
+/* ------------------------------------------------------------------ */
+
+/** Inject line number spans into each shiki `<span class="line">` element. */
+function injectLineNumbers(html: string): string {
+  let lineNum = 0;
+  return html.replace(/<span class="line"/g, () => {
+    lineNum++;
+    return `<span class="line" data-line="${lineNum}"`;
+  });
+}
+
+function CodeImageContent({
+  code,
+  highlightedHtml,
+  showLineNumbers,
+}: {
+  code: string;
+  highlightedHtml: string;
+  showLineNumbers: boolean;
+}) {
+  const lineCount = code.split("\n").length;
+  const gutterChars = String(lineCount).length;
+
+  const finalHtml = showLineNumbers ? injectLineNumbers(highlightedHtml) : highlightedHtml;
+
+  // CSS custom properties to control gutter width in the style block below
+  const lineNumStyles = showLineNumbers
+    ? `
+      .code-image-numbered .line[data-line]::before {
+        content: attr(data-line);
+        display: inline-block;
+        width: ${gutterChars}ch;
+        margin-right: 1.5ch;
+        text-align: right;
+        opacity: 0.25;
+        user-select: none;
+      }
+    `
+    : "";
+
+  return (
+    <div className={showLineNumbers ? "code-image-numbered" : ""}>
+      {lineNumStyles && <style dangerouslySetInnerHTML={{ __html: lineNumStyles }} />}
+      <div
+        className="[&_pre]:!m-0 [&_pre]:!rounded-none [&_pre]:!px-5 [&_pre]:!py-4 [&_code]:!text-sm [&_code]:!leading-relaxed [&_code]:!font-mono"
+        dangerouslySetInnerHTML={{ __html: finalHtml }}
+      />
     </div>
   );
 }
