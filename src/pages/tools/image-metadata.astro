@@ -1,0 +1,94 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Navbar from "../../components/Navbar.astro";
+import Footer from "../../components/Footer.astro";
+import ImageMetadataTool from "../../components/image-metadata/ImageMetadataTool";
+
+const pageTitle = "Image Metadata Viewer & Remover — LocalKit";
+const pageDescription =
+  "View, edit, and strip EXIF, GPS, IPTC, and XMP metadata from images. Batch process multiple files at once. All processing happens locally in your browser — your files never leave your device.";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Image Metadata Viewer & Remover",
+  url: "https://localkit.dev/tools/image-metadata",
+  description: pageDescription,
+  applicationCategory: "MultimediaApplication",
+  operatingSystem: "Any (browser-based)",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  featureList: [
+    "View EXIF, IPTC, XMP, and GPS metadata",
+    "Edit metadata fields like author, copyright, and description",
+    "Strip all metadata for privacy",
+    "Batch process multiple images",
+    "Export metadata as JSON",
+    "GPS location detection warning",
+  ],
+  isPartOf: {
+    "@type": "WebSite",
+    name: "LocalKit",
+    url: "https://localkit.dev",
+  },
+};
+---
+
+<Layout title={pageTitle} description={pageDescription}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </Fragment>
+  <Navbar />
+
+  <main class="relative pt-24 pb-16 md:pt-32 md:pb-24">
+    <!-- Background effects -->
+    <div class="pointer-events-none absolute inset-0">
+      <div class="absolute -top-40 -right-40 h-[400px] w-[400px] rounded-full bg-accent-purple/6 blur-[120px]"></div>
+      <div class="absolute -bottom-20 -left-40 h-[300px] w-[300px] rounded-full bg-accent-indigo/5 blur-[100px]"></div>
+    </div>
+
+    <div class="relative mx-auto max-w-5xl px-6">
+      <!-- Header -->
+      <div class="mb-8">
+        <a href="/" class="mb-4 inline-flex items-center gap-1.5 text-xs text-text-muted transition-colors hover:text-text-secondary">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Back to tools
+        </a>
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg border border-accent-purple/20 bg-accent-purple/10">
+            <svg class="h-5 w-5 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="font-display text-2xl font-bold text-text-primary">Image Metadata Viewer & Remover</h1>
+            <p class="text-sm text-text-muted">View, edit, and strip EXIF, GPS, IPTC, and XMP metadata from your images</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy badge -->
+      <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-border-card bg-bg-secondary px-3 py-1">
+        <svg class="h-3.5 w-3.5 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+        </svg>
+        <span class="text-xs text-text-secondary">100% client-side — your images never leave your device</span>
+      </div>
+
+      <!-- Privacy notice -->
+      <div class="mb-6 flex items-start gap-2 rounded-lg border border-accent-purple/20 bg-accent-purple/5 px-4 py-3">
+        <svg class="mt-0.5 h-4 w-4 shrink-0 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+        <p class="text-xs leading-relaxed text-text-secondary">
+          <strong class="text-text-primary">Privacy tip:</strong> Photos from phones and cameras often contain hidden GPS coordinates, camera serial numbers, and timestamps. Strip metadata before sharing images online to protect your privacy.
+        </p>
+      </div>
+
+      <ImageMetadataTool client:load />
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
