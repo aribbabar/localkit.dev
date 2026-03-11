@@ -1,0 +1,135 @@
+---
+import { getCollection, render } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+import Navbar from "../../components/Navbar.astro";
+import Footer from "../../components/Footer.astro";
+import DocSidebar from "../../components/docs/DocSidebar.astro";
+import TableOfContents from "../../components/docs/TableOfContents.astro";
+
+export async function getStaticPaths() {
+  const docs = await getCollection("docs");
+  return docs
+    .filter((doc) => doc.id !== "index")
+    .map((doc) => ({
+      params: { slug: doc.id },
+      props: { entry: doc },
+    }));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+
+const pageTitle = `${entry.data.title} — LocalKit Docs`;
+const pageDescription = entry.data.description;
+
+// Accent color mapping
+const accentBg: Record<string, string> = {
+  purple: "bg-accent-purple/6",
+  blue: "bg-accent-blue/6",
+  red: "bg-accent-red/6",
+  cyan: "bg-accent-cyan/6",
+  indigo: "bg-accent-indigo/6",
+  teal: "bg-accent-teal/6",
+};
+const accentBg2: Record<string, string> = {
+  purple: "bg-accent-purple/5",
+  blue: "bg-accent-blue/5",
+  red: "bg-accent-red/5",
+  cyan: "bg-accent-cyan/5",
+  indigo: "bg-accent-indigo/5",
+  teal: "bg-accent-teal/5",
+};
+
+const bg1 = accentBg[entry.data.accent] || "bg-accent-indigo/6";
+const bg2 = accentBg2[entry.data.accent] || "bg-accent-indigo/5";
+---
+
+<Layout title={pageTitle} description={pageDescription}>
+  <Navbar />
+
+  <main class="relative pt-24 pb-16 md:pt-32 md:pb-24">
+    <!-- Background effects -->
+    <div class="pointer-events-none absolute inset-0">
+      <div class={`absolute -top-40 -right-40 h-[400px] w-[400px] rounded-full ${bg1} blur-[120px]`}></div>
+      <div class={`absolute -bottom-20 -left-40 h-[300px] w-[300px] rounded-full ${bg2} blur-[100px]`}></div>
+    </div>
+
+    <div class="relative mx-auto max-w-7xl px-6">
+      <!-- Breadcrumb -->
+      <div class="mb-8">
+        <nav class="flex items-center gap-1.5 text-xs text-text-muted">
+          <a href="/" class="transition-colors hover:text-text-secondary">Home</a>
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+          <a href="/docs" class="transition-colors hover:text-text-secondary">Docs</a>
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+          <span class="text-text-secondary">{entry.data.title}</span>
+        </nav>
+      </div>
+
+      <div class="flex gap-10">
+        <!-- Left sidebar -->
+        <DocSidebar currentSlug={entry.id} />
+
+        <!-- Main content -->
+        <div class="min-w-0 flex-1">
+          <header class="mb-10">
+            <div class="mb-2 flex items-center gap-3">
+              <span class="text-2xl">{entry.data.icon}</span>
+              <h1 class="font-display text-3xl font-bold text-text-primary">
+                {entry.data.title}
+              </h1>
+            </div>
+            <p class="text-text-secondary">{entry.data.description}</p>
+            <div class="mt-3 flex items-center gap-4">
+              <span class="text-xs text-text-muted">
+                Last updated: {entry.data.lastUpdated.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+              </span>
+              {entry.data.tool && (
+                <a
+                  href={`/tools/${entry.data.tool}`}
+                  class="inline-flex items-center gap-1.5 rounded-full border border-border-card bg-bg-secondary px-3 py-1 text-xs text-text-secondary transition-colors hover:border-border-card-hover hover:text-text-primary"
+                >
+                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                  </svg>
+                  Try this tool
+                </a>
+              )}
+            </div>
+          </header>
+
+          <article class="prose-doc">
+            <Content />
+          </article>
+
+          <!-- Prev/Next navigation -->
+          <nav class="mt-16 flex items-center justify-between border-t border-border-card pt-8">
+            <a href="/docs" class="group flex items-center gap-2 text-sm text-text-muted transition-colors hover:text-text-primary">
+              <svg class="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+              </svg>
+              All docs
+            </a>
+            {entry.data.tool && (
+              <a href={`/tools/${entry.data.tool}`} class="group flex items-center gap-2 text-sm text-text-muted transition-colors hover:text-text-primary">
+                Open tool
+                <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </a>
+            )}
+          </nav>
+        </div>
+
+        <!-- Right TOC -->
+        <TableOfContents headings={headings} />
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>

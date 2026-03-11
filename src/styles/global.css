@@ -58,3 +58,139 @@ body {
   background-color: color-mix(in srgb, var(--color-accent-green) 30%, transparent);
   color: white;
 }
+
+/* ── Prose (doc pages) ── */
+.prose-doc {
+  max-width: 48rem;
+  line-height: 1.75;
+  color: var(--color-text-secondary);
+}
+
+.prose-doc h2 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  scroll-margin-top: 6rem;
+}
+
+.prose-doc h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  scroll-margin-top: 6rem;
+}
+
+.prose-doc p {
+  margin-bottom: 1rem;
+}
+
+.prose-doc a {
+  color: var(--color-accent-indigo);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.prose-doc a:hover {
+  color: var(--color-accent-purple);
+  text-decoration: underline;
+}
+
+.prose-doc strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.prose-doc ul,
+.prose-doc ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.prose-doc ul {
+  list-style-type: disc;
+}
+
+.prose-doc ol {
+  list-style-type: decimal;
+}
+
+.prose-doc li {
+  margin-bottom: 0.35rem;
+}
+
+.prose-doc li > ul,
+.prose-doc li > ol {
+  margin-top: 0.35rem;
+  margin-bottom: 0;
+}
+
+.prose-doc code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border-card);
+  border-radius: 0.375rem;
+  padding: 0.15em 0.4em;
+  color: var(--color-text-primary);
+}
+
+.prose-doc pre {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border-card);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.prose-doc pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  color: var(--color-text-primary);
+}
+
+.prose-doc table {
+  width: 100%;
+  margin-bottom: 1.25rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.prose-doc th {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: left;
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--color-border-card-hover);
+  background-color: var(--color-bg-card);
+}
+
+.prose-doc td {
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--color-border-card);
+}
+
+.prose-doc hr {
+  border: none;
+  border-top: 1px solid var(--color-border-card);
+  margin: 2rem 0;
+}
+
+.prose-doc blockquote {
+  border-left: 3px solid var(--color-border-card-hover);
+  padding-left: 1rem;
+  margin-bottom: 1rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}

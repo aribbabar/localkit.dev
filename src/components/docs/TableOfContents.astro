@@ -1,0 +1,35 @@
+---
+interface Props {
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { headings } = Astro.props;
+const tocHeadings = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
+---
+
+{tocHeadings.length > 0 && (
+  <nav class="hidden xl:block" aria-label="Table of contents">
+    <div class="sticky top-28">
+      <h4 class="mb-3 font-display text-xs font-semibold uppercase tracking-wider text-text-secondary">
+        On this page
+      </h4>
+      <ul class="space-y-1.5 border-l border-border-card">
+        {tocHeadings.map((heading) => (
+          <li>
+            <a
+              href={`#${heading.slug}`}
+              class:list={[
+                "block border-l-2 text-sm transition-colors hover:text-text-primary hover:border-text-secondary",
+                heading.depth === 2
+                  ? "pl-4 border-transparent text-text-muted"
+                  : "pl-7 border-transparent text-text-muted/70",
+              ]}
+            >
+              {heading.text}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </nav>
+)}

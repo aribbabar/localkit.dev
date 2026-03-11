@@ -1,0 +1,70 @@
+---
+import { getCollection } from "astro:content";
+
+interface Props {
+  currentSlug?: string;
+}
+
+const { currentSlug } = Astro.props;
+const allDocs = await getCollection("docs");
+const sortedDocs = allDocs.sort((a, b) => (a.data.order ?? 0) - (b.data.order ?? 0));
+
+const overviewDoc = sortedDocs.find((d) => d.id === "index");
+const toolDocs = sortedDocs.filter((d) => d.id !== "index");
+
+const accentMap: Record<string, string> = {
+  purple: "text-accent-purple",
+  blue: "text-accent-blue",
+  red: "text-accent-red",
+  cyan: "text-accent-cyan",
+  indigo: "text-accent-indigo",
+  teal: "text-accent-teal",
+};
+---
+
+<aside class="hidden lg:block">
+  <div class="sticky top-28 w-56">
+    <h4 class="mb-3 font-display text-xs font-semibold uppercase tracking-wider text-text-secondary">
+      Documentation
+    </h4>
+    <nav class="space-y-1" aria-label="Documentation navigation">
+      {/* Overview link */}
+      {overviewDoc && (
+        <a
+          href="/docs"
+          class:list={[
+            "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+            !currentSlug
+              ? "bg-bg-card border border-border-card-hover text-text-primary"
+              : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50",
+          ]}
+        >
+          <span class="text-xs">{overviewDoc.data.icon}</span>
+          <span>Overview</span>
+        </a>
+      )}
+
+      {/* Divider */}
+      <div class="!my-3 border-t border-border-card"></div>
+
+      {/* Tool docs */}
+      {toolDocs.map((doc) => {
+        const isActive = currentSlug === doc.id;
+        return (
+          <a
+            href={`/docs/${doc.id}`}
+            class:list={[
+              "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+              isActive
+                ? "bg-bg-card border border-border-card-hover text-text-primary"
+                : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50",
+            ]}
+          >
+            <span class="text-xs">{doc.data.icon}</span>
+            <span>{doc.data.title}</span>
+          </a>
+        );
+      })}
+    </nav>
+  </div>
+</aside>
