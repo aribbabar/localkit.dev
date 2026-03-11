@@ -1,6 +1,8 @@
 ---
 import { getCollection } from "astro:content";
 
+import DocIcon from "./DocIcon.astro";
+
 interface Props {
   currentSlug?: string;
 }
@@ -39,7 +41,7 @@ const accentMap: Record<string, string> = {
               : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50",
           ]}
         >
-          <span class="text-xs">{overviewDoc.data.icon}</span>
+          <DocIcon name={overviewDoc.data.icon} size={14} />
           <span>Overview</span>
         </a>
       )}
@@ -60,7 +62,7 @@ const accentMap: Record<string, string> = {
                 : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50",
             ]}
           >
-            <span class="text-xs">{doc.data.icon}</span>
+            <DocIcon name={doc.data.icon} size={14} />
             <span>{doc.data.title}</span>
           </a>
         );

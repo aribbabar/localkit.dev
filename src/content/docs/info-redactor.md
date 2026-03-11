@@ -3,7 +3,7 @@ title: "Info Redactor"
 description: "How the Info Redactor works — detect and redact sensitive data from text locally."
 tool: "info-redactor"
 accent: "indigo"
-icon: "🔒"
+icon: "ShieldCheck"
 lastUpdated: 2026-03-10
 order: 7
 ---

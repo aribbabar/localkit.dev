@@ -3,7 +3,7 @@ title: "Markdown Preview"
 description: "How the Markdown Preview tool works — real-time rendering with full GFM support."
 tool: "markdown-preview"
 accent: "cyan"
-icon: "📄"
+icon: "FileText"
 lastUpdated: 2026-03-10
 order: 6
 ---

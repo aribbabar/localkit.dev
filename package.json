@@ -14,6 +14,7 @@
     "@ffmpeg/util": "^0.12.2",
     "@huggingface/transformers": "^3.8.1",
     "@imagemagick/magick-wasm": "^0.0.38",
+    "@lucide/astro": "^0.577.0",
     "@tailwindcss/vite": "^4.2.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

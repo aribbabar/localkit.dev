@@ -3,7 +3,7 @@ title: "Password Generator"
 description: "How the Password Generator works — generate cryptographically strong passwords locally."
 tool: "password-generator"
 accent: "indigo"
-icon: "🔒"
+icon: "KeyRound"
 lastUpdated: 2026-03-10
 order: 8
 ---

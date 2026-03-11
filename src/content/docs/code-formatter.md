@@ -3,7 +3,7 @@ title: "Code Formatter"
 description: "How the Code Formatter works — format 25+ languages with Prettier and Clang-format WASM."
 tool: "code-formatter"
 accent: "teal"
-icon: "🔧"
+icon: "Code"
 lastUpdated: 2026-03-10
 order: 9
 ---

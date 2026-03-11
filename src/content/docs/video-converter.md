@@ -3,7 +3,7 @@ title: "Video Converter"
 description: "How the Video Converter works — convert videos between formats using FFmpeg WASM."
 tool: "video-converter"
 accent: "blue"
-icon: "🎬"
+icon: "Video"
 lastUpdated: 2026-03-10
 order: 4
 ---

@@ -3,7 +3,7 @@ title: "PDF Tools"
 description: "How the PDF Tools suite works — merge, split, compress, and convert PDFs using MuPDF WASM."
 tool: "pdf-tools"
 accent: "red"
-icon: "📄"
+icon: "FileType"
 lastUpdated: 2026-03-10
 order: 5
 ---

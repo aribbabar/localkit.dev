@@ -1,5 +1,17 @@
 ---
 // ToolCard — individual tool card with icon, title, and description
+import {
+  Image,
+  Video,
+  FileType,
+  ShieldCheck,
+  Route,
+  Eye,
+  Code,
+  ScanSearch,
+  FileText,
+  KeyRound,
+} from "@lucide/astro";
 
 interface Props {
   title: string;
@@ -10,6 +22,11 @@ interface Props {
 }
 
 const { title, description, icon, accentColor, href = "#" } = Astro.props;
+
+const iconMap: Record<string, any> = {
+  Image, Video, FileType, ShieldCheck, Route, Eye, Code, ScanSearch, FileText, KeyRound,
+};
+const Icon = iconMap[icon];
 
 const colorMap: Record<string, { bg: string; border: string; text: string; glow: string }> = {
   purple: { bg: "bg-accent-purple/10", border: "border-accent-purple/20", text: "text-accent-purple", glow: "group-hover:shadow-[0_0_30px_rgba(168,85,247,0.08)]" },
@@ -39,7 +56,7 @@ const colors = colorMap[accentColor] || colorMap.purple;
 
   <!-- Icon -->
   <div class:list={["mb-4 flex h-10 w-10 items-center justify-center rounded-lg border", colors.bg, colors.border]}>
-    <span class:list={["text-lg", colors.text]} set:html={icon} />
+    {Icon && <Icon size={20} class={colors.text} />}
   </div>
 
   <!-- Content -->

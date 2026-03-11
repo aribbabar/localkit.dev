@@ -3,7 +3,7 @@ title: "Image Converter"
 description: "How the Image Converter works — batch convert images between formats using ImageMagick WASM."
 tool: "image-converter"
 accent: "purple"
-icon: "🖼"
+icon: "Image"
 lastUpdated: 2026-03-10
 order: 1
 ---
@@ -59,10 +59,13 @@ All image processing happens entirely in your browser. Your images are never upl
 ## FAQs
 
 ### Is there a file size limit?
+
 There's no hard limit, but very large images (50MB+) may cause the browser to run out of memory depending on your device. For best results, keep individual files under 30MB.
 
 ### Does conversion preserve EXIF metadata?
+
 By default, metadata is stripped during conversion. If you need to inspect or preserve metadata, use the [Image Metadata](/tools/image-metadata) tool first.
 
 ### What's the difference between lossy and lossless formats?
+
 Lossy formats (JPG, WebP at lower quality) reduce file size by discarding some image data. Lossless formats (PNG, BMP, TIFF) preserve all data exactly. Use the quality slider to control the tradeoff for lossy formats.

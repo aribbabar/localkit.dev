@@ -3,7 +3,7 @@ title: "SVG Viewer"
 description: "How the SVG Viewer works — preview, inspect, and debug SVG code with live rendering."
 tool: "svg-viewer"
 accent: "cyan"
-icon: "🖼"
+icon: "Eye"
 lastUpdated: 2026-03-10
 order: 3
 ---

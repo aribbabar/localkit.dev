@@ -3,7 +3,7 @@ title: "Path Converter"
 description: "How the Path Converter works — convert file paths between forward and backslash formats."
 tool: "path-converter"
 accent: "teal"
-icon: "🔧"
+icon: "Route"
 lastUpdated: 2026-03-10
 order: 10
 ---

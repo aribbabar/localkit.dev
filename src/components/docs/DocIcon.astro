@@ -1,0 +1,41 @@
+---
+import {
+  Zap,
+  Image,
+  ScanSearch,
+  Eye,
+  Video,
+  FileText,
+  FileType,
+  Code,
+  Route,
+  KeyRound,
+  ShieldCheck,
+} from "@lucide/astro";
+
+interface Props {
+  name: string;
+  size?: number;
+  class?: string;
+}
+
+const { name, size, class: className } = Astro.props;
+
+const iconMap: Record<string, any> = {
+  Zap,
+  Image,
+  ScanSearch,
+  Eye,
+  Video,
+  FileText,
+  FileType,
+  Code,
+  Route,
+  KeyRound,
+  ShieldCheck,
+};
+
+const Icon = iconMap[name];
+---
+
+{Icon && <Icon size={size} class={className} />}

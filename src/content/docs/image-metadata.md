@@ -3,7 +3,7 @@ title: "Image Metadata"
 description: "How the Image Metadata tool works — view, edit, and strip EXIF data from images locally."
 tool: "image-metadata"
 accent: "purple"
-icon: "🖼"
+icon: "ScanSearch"
 lastUpdated: 2026-03-10
 order: 2
 ---
