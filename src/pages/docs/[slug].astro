@@ -6,6 +6,7 @@ import Footer from "../../components/Footer.astro";
 import DocSidebar from "../../components/docs/DocSidebar.astro";
 import TableOfContents from "../../components/docs/TableOfContents.astro";
 import DocIcon from "../../components/docs/DocIcon.astro";
+import { ChevronRight, ExternalLink, ClipboardCopy, ArrowLeft, ArrowRight } from "@lucide/astro";
 
 export async function getStaticPaths() {
   const docs = await getCollection("docs");
@@ -60,13 +61,9 @@ const bg2 = accentBg2[entry.data.accent] || "bg-accent-indigo/5";
       <div class="mb-8">
         <nav class="flex items-center gap-1.5 text-xs text-text-muted">
           <a href="/" class="transition-colors hover:text-text-secondary">Home</a>
-          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
+          <ChevronRight class="h-3 w-3" />
           <a href="/docs" class="transition-colors hover:text-text-secondary">Docs</a>
-          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
+          <ChevronRight class="h-3 w-3" />
           <span class="text-text-secondary">{entry.data.title}</span>
         </nav>
       </div>
@@ -94,12 +91,18 @@ const bg2 = accentBg2[entry.data.accent] || "bg-accent-indigo/5";
                   href={`/tools/${entry.data.tool}`}
                   class="inline-flex items-center gap-1.5 rounded-full border border-border-card bg-bg-secondary px-3 py-1 text-xs text-text-secondary transition-colors hover:border-border-card-hover hover:text-text-primary"
                 >
-                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                  </svg>
+                  <ExternalLink class="h-3 w-3" />
                   Try this tool
                 </a>
               )}
+              <button
+                id="copy-page-btn"
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-full border border-border-card bg-bg-secondary px-3 py-1 text-xs text-text-secondary transition-colors hover:border-border-card-hover hover:text-text-primary"
+              >
+                <ClipboardCopy class="h-3 w-3" />
+                <span id="copy-page-label">Copy page</span>
+              </button>
             </div>
           </header>
 
@@ -110,17 +113,13 @@ const bg2 = accentBg2[entry.data.accent] || "bg-accent-indigo/5";
           <!-- Prev/Next navigation -->
           <nav class="mt-16 flex items-center justify-between border-t border-border-card pt-8">
             <a href="/docs" class="group flex items-center gap-2 text-sm text-text-muted transition-colors hover:text-text-primary">
-              <svg class="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-              </svg>
+              <ArrowLeft class="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
               All docs
             </a>
             {entry.data.tool && (
               <a href={`/tools/${entry.data.tool}`} class="group flex items-center gap-2 text-sm text-text-muted transition-colors hover:text-text-primary">
                 Open tool
-                <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
+                <ArrowRight class="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </a>
             )}
           </nav>
@@ -133,4 +132,18 @@ const bg2 = accentBg2[entry.data.accent] || "bg-accent-indigo/5";
   </main>
 
   <Footer />
+
+  <script define:vars={{ rawMarkdown: entry.body }}>
+    document.getElementById('copy-page-btn').addEventListener('click', async () => {
+      const label = document.getElementById('copy-page-label');
+      try {
+        await navigator.clipboard.writeText(rawMarkdown);
+        label.textContent = 'Copied!';
+        setTimeout(() => { label.textContent = 'Copy page'; }, 2000);
+      } catch {
+        label.textContent = 'Failed';
+        setTimeout(() => { label.textContent = 'Copy page'; }, 2000);
+      }
+    });
+  </script>
 </Layout>

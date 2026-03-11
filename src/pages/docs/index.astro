@@ -6,6 +6,7 @@ import Footer from "../../components/Footer.astro";
 import DocSidebar from "../../components/docs/DocSidebar.astro";
 import TableOfContents from "../../components/docs/TableOfContents.astro";
 import DocIcon from "../../components/docs/DocIcon.astro";
+import { ChevronRight, ClipboardCopy } from "@lucide/astro";
 
 const entry = await getEntry("docs", "index");
 if (!entry) throw new Error("Missing docs/index.md");
@@ -31,9 +32,7 @@ const pageDescription = entry.data.description;
       <div class="mb-8">
         <nav class="flex items-center gap-1.5 text-xs text-text-muted">
           <a href="/" class="transition-colors hover:text-text-secondary">Home</a>
-          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
+          <ChevronRight class="h-3 w-3" />
           <span class="text-text-secondary">Docs</span>
         </nav>
       </div>
@@ -52,8 +51,18 @@ const pageDescription = entry.data.description;
               </h1>
             </div>
             <p class="text-text-secondary">{entry.data.description}</p>
-            <div class="mt-3 text-xs text-text-muted">
-              Last updated: {entry.data.lastUpdated.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+            <div class="mt-3 flex items-center gap-4">
+              <span class="text-xs text-text-muted">
+                Last updated: {entry.data.lastUpdated.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+              </span>
+              <button
+                id="copy-page-btn"
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-full border border-border-card bg-bg-secondary px-3 py-1 text-xs text-text-secondary transition-colors hover:border-border-card-hover hover:text-text-primary"
+              >
+                <ClipboardCopy class="h-3 w-3" />
+                <span id="copy-page-label">Copy page</span>
+              </button>
             </div>
           </header>
 
@@ -69,4 +78,18 @@ const pageDescription = entry.data.description;
   </main>
 
   <Footer />
+
+  <script define:vars={{ rawMarkdown: entry.body }}>
+    document.getElementById('copy-page-btn').addEventListener('click', async () => {
+      const label = document.getElementById('copy-page-label');
+      try {
+        await navigator.clipboard.writeText(rawMarkdown);
+        label.textContent = 'Copied!';
+        setTimeout(() => { label.textContent = 'Copy page'; }, 2000);
+      } catch {
+        label.textContent = 'Failed';
+        setTimeout(() => { label.textContent = 'Copy page'; }, 2000);
+      }
+    });
+  </script>
 </Layout>

@@ -1,6 +1,6 @@
 ---
 title: "Architecture Overview"
-description: "How LocalKit is built — a privacy-first, browser-native utility suite powered by WebAssembly."
+description: "How LocalKit is built: a privacy-first, browser-native utility suite powered by WebAssembly."
 icon: "Zap"
 accent: "indigo"
 lastUpdated: 2026-03-10
@@ -9,9 +9,19 @@ order: 0
 
 ## Why LocalKit?
 
-In my day job, I often need to convert between image and video formats. For example, my company's CRM system did not support .heic images, hence, I had to convert to jpg or png. However, as someone who takes their privacy seriously, I did not feel comfortable using online tools for converting between extensions. After all, we do not know what happens to our data when we upload anything to the web. Hence, an idea was born. If I am having this issue, I was certain others are having the same issue. I have the technical knowledge, and I know about **WebAssembly (WASM)**, hence I knew I could build this. Hnece, meet **LocalKit**. LocalKit's goal is simple: **everything runs locally in your browser**. No uploads, no account, and no tracking of any kind.
+In my day job, I often need to convert between different image and video formats. For example, my company’s CRM system doesn’t support `.heic` images, which means I have to convert them to `.jpg` or `.png`.
 
-This is possible thanks to **WebAssembly (WASM)**, which lets us run powerful native libraries like FFmpeg, ImageMagick, and MuPDF directly inside the browser.
+However, as someone who takes privacy seriously, I’ve never felt comfortable using online tools for these conversions. After all, when you upload files to a random website, you have no idea what happens to that data behind the scenes.
+
+That’s when the idea was born. If I’m running into this problem, chances are others are dealing with the same thing.
+
+I already had the technical background and knew about **WebAssembly (WASM)**, so I realized I could actually build a solution for this.
+
+Hence, meet **LocalKit**.
+
+LocalKit’s goal is simple: **everything runs locally in your browser**. No uploads. No accounts. No tracking of any kind.
+
+This is possible thanks to **WebAssembly (WASM)**, which allows powerful native libraries like **FFmpeg**, **ImageMagick**, and **MuPDF** to run directly inside the browser.
 
 ## Frontend Architecture
 
