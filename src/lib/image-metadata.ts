@@ -255,7 +255,7 @@ export async function parseMetadata(file: File): Promise<ImageMetadata> {
   try {
     const thumb = await exifr.thumbnail(buffer);
     if (thumb) {
-      thumbnailUrl = URL.createObjectURL(new Blob([thumb], { type: "image/jpeg" }));
+      thumbnailUrl = URL.createObjectURL(new Blob([thumb.buffer as ArrayBuffer], { type: "image/jpeg" }));
     }
   } catch {
     // No embedded thumbnail

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type DragEvent } from "react";
-import type { ConvertedFile } from "../../lib/imagemagick";
+import type { ConvertedFile, ImageInfo } from "../../lib/imagemagick";
 import styles from "./ImageConverterTool.module.css";
 
 let imagemagick: typeof import("../../lib/imagemagick") | null = null;
@@ -47,6 +47,7 @@ export default function ImageConverterTool() {
   const [quality, setQuality] = useState(90);
   const [resize, setResize] = useState("");
   const [stripMetadata, setStripMetadata] = useState(false);
+  const [imageInfos, setImageInfos] = useState<(ImageInfo | null)[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [isZipping, setIsZipping] = useState(false);
@@ -54,6 +55,25 @@ export default function ImageConverterTool() {
 
   const hasFiles = selectedFiles.length > 0;
   const showQuality = useMemo(() => LOSSY_FORMATS.has(outputFormat), [outputFormat]);
+
+  // Compute per-file and total estimated sizes
+  const fileEstimates = useMemo(() => {
+    if (!imageInfos.length || !imagemagick) return null;
+    const opts = {
+      quality: showQuality ? quality : undefined,
+      resize: resize.trim() || undefined,
+    };
+    const estimates: (number | null)[] = imageInfos.map((info) =>
+      info ? imagemagick!.estimateOutputSize(info, outputFormat, opts) : null
+    );
+    const validEstimates = estimates.filter((e): e is number => e !== null);
+    if (!validEstimates.length) return null;
+    return {
+      perFile: estimates,
+      total: validEstimates.reduce((sum, e) => sum + e, 0),
+      count: validEstimates.length,
+    };
+  }, [imageInfos, outputFormat, quality, showQuality, resize]);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +109,15 @@ export default function ImageConverterTool() {
     if (!nextFiles.length) return;
     setSelectedFiles((prev) => [...prev, ...nextFiles]);
     setConvertedFiles([]);
+
+    // Fetch image info for size estimation (non-blocking)
+    void (async () => {
+      const { getImageInfo } = await getImageMagick();
+      const infos = await Promise.all(
+        nextFiles.map((f) => getImageInfo(f).catch(() => null))
+      );
+      setImageInfos((prev) => [...prev, ...infos]);
+    })();
   }
 
   function handleFileInputChange(e: ChangeEvent<HTMLInputElement>) {
@@ -117,10 +146,12 @@ export default function ImageConverterTool() {
 
   function removeFile(index: number) {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setImageInfos((prev) => prev.filter((_, i) => i !== index));
   }
 
   function clearFiles() {
     setSelectedFiles([]);
+    setImageInfos([]);
     setConvertedFiles([]);
     setProgress({ done: 0, total: 0 });
   }
@@ -274,7 +305,14 @@ export default function ImageConverterTool() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-medium text-text-primary">{file.name}</p>
-                      <p className="text-[10px] text-text-muted">{formatSize(file.size)}</p>
+                      <p className="text-[10px] text-text-muted">
+                        {formatSize(file.size)}
+                        {fileEstimates?.perFile[index] != null && (
+                          <span className="text-text-muted/60">
+                            {" "}&rarr; ~{formatSize(fileEstimates.perFile[index])}
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -393,6 +431,20 @@ export default function ImageConverterTool() {
                 </svg>
                 {isConverting ? "Converting..." : "Convert"}
               </button>
+
+              {fileEstimates && (
+                <div className="mt-3 rounded-lg border border-border-card bg-bg-secondary px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-text-muted">Estimated output</span>
+                    <span className="font-mono text-xs text-text-secondary">~{formatSize(fileEstimates.total)}</span>
+                  </div>
+                  {fileEstimates.count < selectedFiles.length && (
+                    <p className="mt-0.5 text-[10px] text-text-muted">
+                      ({fileEstimates.count}/{selectedFiles.length} files estimated)
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -437,35 +489,52 @@ export default function ImageConverterTool() {
               </div>
 
               <div className="space-y-2">
-                {convertedFiles.map((file, index) => (
-                  <div
-                    key={`${file.name}-${file.buffer.byteLength}-${index}`}
-                    className="flex items-center gap-3 rounded-lg border border-accent-green/20 bg-accent-green/5 px-3 py-2"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-accent-green/10">
-                      <svg
-                        className="h-4 w-4 text-accent-green"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium text-text-primary">{file.name}</p>
-                      <p className="text-[10px] text-text-muted">{formatSize(file.buffer.byteLength)}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => downloadFile(convertedFiles[index])}
-                      className="shrink-0 rounded-md border border-accent-green/30 bg-accent-green/10 px-2 py-1 text-[10px] font-medium text-accent-green transition-colors hover:bg-accent-green/20"
+                {convertedFiles.map((file, index) => {
+                  const originalSize = selectedFiles[index]?.size ?? 0;
+                  const outputSize = file.buffer.byteLength;
+                  const delta = originalSize > 0 ? ((outputSize - originalSize) / originalSize) * 100 : 0;
+                  const shrank = delta < -1;
+                  const grew = delta > 1;
+
+                  return (
+                    <div
+                      key={`${file.name}-${outputSize}-${index}`}
+                      className="flex items-center gap-3 rounded-lg border border-accent-green/20 bg-accent-green/5 px-3 py-2"
                     >
-                      Save
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-accent-green/10">
+                        <svg
+                          className="h-4 w-4 text-accent-green"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium text-text-primary">{file.name}</p>
+                        <p className="text-[10px] text-text-muted">
+                          {formatSize(originalSize)}
+                          <span className="mx-1 text-text-muted/60">&rarr;</span>
+                          {formatSize(outputSize)}
+                          {(shrank || grew) && (
+                            <span className={`ml-1 ${shrank ? "text-accent-green" : "text-accent-orange"}`}>
+                              ({delta > 0 ? "+" : ""}{Math.round(delta)}%)
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => downloadFile(convertedFiles[index])}
+                        className="shrink-0 rounded-md border border-accent-green/30 bg-accent-green/10 px-2 py-1 text-[10px] font-medium text-accent-green transition-colors hover:bg-accent-green/20"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

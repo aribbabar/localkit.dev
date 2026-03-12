@@ -13,6 +13,13 @@ export interface ConvertedFile {
   buffer: ArrayBuffer;
 }
 
+export interface ImageInfo {
+  width: number;
+  height: number;
+  channels: number;
+  hasAlpha: boolean;
+}
+
 const FORMAT_MAP = {
   png: MagickFormat.Png,
   jpg: MagickFormat.Jpeg,
@@ -163,6 +170,118 @@ export async function convertBatch(
     onProgress?.(i + 1, files.length);
   }
   return results;
+}
+
+export async function getImageInfo(file: File): Promise<ImageInfo> {
+  await ensureInitialized();
+  const inputBytes = new Uint8Array(await file.arrayBuffer());
+  let info: ImageInfo | null = null;
+
+  ImageMagick.read(inputBytes, (image) => {
+    info = {
+      width: image.width,
+      height: image.height,
+      channels: image.channelCount,
+      hasAlpha: image.hasAlpha,
+    };
+  });
+
+  if (!info) {
+    throw new Error(`Failed to read image info for "${file.name}"`);
+  }
+  return info;
+}
+
+/**
+ * Estimate output file size in bytes based on image dimensions and target format/options.
+ * These are rough heuristics — actual sizes depend heavily on image content.
+ */
+export function estimateOutputSize(
+  info: ImageInfo,
+  targetFormat: string,
+  options: ConvertOptions = {}
+): number | null {
+  const ext = targetFormat.toLowerCase();
+  let w = info.width;
+  let h = info.height;
+
+  // Account for resize if specified
+  if (options.resize?.trim()) {
+    const r = options.resize.trim();
+    const pctMatch = r.match(/^(\d+)%$/);
+    const dimMatch = r.match(/^(\d+)x(\d+)$/i);
+    if (pctMatch) {
+      const scale = parseInt(pctMatch[1], 10) / 100;
+      w = Math.round(w * scale);
+      h = Math.round(h * scale);
+    } else if (dimMatch) {
+      w = parseInt(dimMatch[1], 10);
+      h = parseInt(dimMatch[2], 10);
+    }
+  }
+
+  const pixels = w * h;
+  const ch = info.channels;
+
+  switch (ext) {
+    case "bmp":
+      // BMP is essentially uncompressed: header + pixel data
+      return 54 + pixels * Math.min(ch, 3);
+
+    case "ppm":
+      // PPM binary: small header + raw RGB
+      return 20 + pixels * 3;
+
+    case "pgm":
+      // PGM binary: small header + raw grayscale
+      return 20 + pixels;
+
+    case "tiff":
+      // TIFF uncompressed (default for ImageMagick)
+      return 1024 + pixels * ch;
+
+    case "tga":
+      // TGA uncompressed
+      return 44 + pixels * (info.hasAlpha ? 4 : 3);
+
+    case "jpg": {
+      // JPEG size varies wildly by content. Use a quality-based heuristic.
+      const q = typeof options.quality === "number" ? Math.max(1, Math.min(100, options.quality)) : 90;
+      // At q=1 ~0.04 bytes/pixel, at q=100 ~0.6 bytes/pixel (rough midpoint for photos)
+      const bpp = 0.04 + (q / 100) * 0.56;
+      return Math.round(pixels * bpp);
+    }
+
+    case "heic":
+    case "heif": {
+      const q = typeof options.quality === "number" ? Math.max(1, Math.min(100, options.quality)) : 90;
+      // HEIC is ~30-50% more efficient than JPEG
+      const bpp = (0.03 + (q / 100) * 0.35);
+      return Math.round(pixels * bpp);
+    }
+
+    case "png":
+      // PNG compression ratio varies. Use ~40-60% of raw depending on channel count.
+      return Math.round(pixels * ch * 0.45);
+
+    case "gif":
+      // GIF: palette-based, 256 colors max. Very content-dependent.
+      // Rough estimate: ~0.5-1.5 bytes/pixel
+      return Math.round(pixels * 0.8);
+
+    case "ico":
+      // ICO: essentially BMP or PNG embedded, small images
+      return 1024 + pixels * 4;
+
+    case "psd": {
+      const q = typeof options.quality === "number" ? Math.max(1, Math.min(100, options.quality)) : 90;
+      // PSD with compression: roughly raw * quality factor
+      return Math.round(pixels * ch * (0.3 + (q / 100) * 0.7));
+    }
+
+    default:
+      return null;
+  }
 }
 
 export async function getAvailableOutputFormats() {
