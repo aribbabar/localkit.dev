@@ -26,6 +26,14 @@ const {
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Theme: prevent flash of wrong theme -->
+    <script is:inline>
+      (function() {
+        var stored = localStorage.getItem('theme');
+        var theme = stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -75,5 +83,43 @@ const {
   </head>
   <body class="min-h-screen overflow-x-hidden">
     <slot />
+    <script is:inline>
+      (function() {
+        var toggle = document.getElementById('theme-toggle');
+        if (!toggle) return;
+
+        function updateIcon() {
+          var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+          var cutout = document.getElementById('theme-toggle__classic__cutout');
+          if (cutout) {
+            var path = cutout.querySelector('path');
+            if (path) {
+              path.setAttribute('d', isLight
+                ? 'M0-5h30a1 1 0 0 0 9 13v24H0Z'
+                : 'M0-11h25a1 1 0 0 1 7 20v24H0Z'
+              );
+            }
+          }
+        }
+
+        updateIcon();
+
+        toggle.addEventListener('click', function() {
+          var current = document.documentElement.getAttribute('data-theme');
+          var next = current === 'light' ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+          updateIcon();
+        });
+
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function(e) {
+          if (!localStorage.getItem('theme')) {
+            var theme = e.matches ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            updateIcon();
+          }
+        });
+      })();
+    </script>
   </body>
 </html>
