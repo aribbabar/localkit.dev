@@ -23,6 +23,37 @@ const { Content, headings } = await render(entry);
 
 const pageTitle = `${entry.data.title} — LocalKit Docs`;
 const pageDescription = entry.data.description;
+const pageUrl = `https://localkit.dev/docs/${entry.id}`;
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: entry.data.title,
+    description: pageDescription,
+    url: pageUrl,
+    dateModified: entry.data.lastUpdated.toISOString(),
+    publisher: {
+      "@type": "Organization",
+      name: "LocalKit",
+      url: "https://localkit.dev",
+    },
+    isPartOf: {
+      "@type": "WebSite",
+      name: "LocalKit",
+      url: "https://localkit.dev",
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://localkit.dev" },
+      { "@type": "ListItem", position: 2, name: "Docs", item: "https://localkit.dev/docs" },
+      { "@type": "ListItem", position: 3, name: entry.data.title, item: pageUrl },
+    ],
+  },
+];
 
 // Accent color mapping
 const accentBg: Record<string, string> = {
@@ -46,7 +77,10 @@ const bg1 = accentBg[entry.data.accent] || "bg-accent-indigo/6";
 const bg2 = accentBg2[entry.data.accent] || "bg-accent-indigo/5";
 ---
 
-<Layout title={pageTitle} description={pageDescription}>
+<Layout title={pageTitle} description={pageDescription} ogType="article">
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </Fragment>
   <Navbar />
 
   <main class="relative pt-24 pb-16 md:pt-32 md:pb-24">
@@ -59,7 +93,7 @@ const bg2 = accentBg2[entry.data.accent] || "bg-accent-indigo/5";
     <div class="relative mx-auto max-w-7xl px-6">
       <!-- Breadcrumb -->
       <div class="mb-8">
-        <nav class="flex items-center gap-1.5 text-xs text-text-muted">
+        <nav class="flex items-center gap-1.5 text-xs text-text-muted" aria-label="Breadcrumb">
           <a href="/" class="transition-colors hover:text-text-secondary">Home</a>
           <ChevronRight class="h-3 w-3" />
           <a href="/docs" class="transition-colors hover:text-text-secondary">Docs</a>

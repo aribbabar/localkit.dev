@@ -15,9 +15,25 @@ const { Content, headings } = await render(entry);
 
 const pageTitle = `${entry.data.title} — LocalKit Docs`;
 const pageDescription = entry.data.description;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: entry.data.title,
+  description: pageDescription,
+  url: "https://localkit.dev/docs",
+  isPartOf: {
+    "@type": "WebSite",
+    name: "LocalKit",
+    url: "https://localkit.dev",
+  },
+};
 ---
 
 <Layout title={pageTitle} description={pageDescription}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </Fragment>
   <Navbar />
 
   <main class="relative pt-24 pb-16 md:pt-32 md:pb-24">

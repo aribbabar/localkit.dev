@@ -1,0 +1,108 @@
+name: Tool Request
+description: Suggest a new tool for localkit.dev.
+title: "[Tool Request]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the request.
+
+        localkit.dev tools run in-browser, so requests should describe privacy expectations and offline behavior.
+
+  - type: input
+    id: tool_name
+    attributes:
+      label: Tool name
+      description: A short, specific name for the requested tool.
+      placeholder: e.g. JSON Diff Viewer
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What task are you trying to accomplish?
+      placeholder: Describe the pain point and current workaround.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_workflow
+    attributes:
+      label: Expected workflow
+      description: What should the tool do, step by step?
+      placeholder: |
+        1. I upload or paste...
+        2. I click...
+        3. I download or copy...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: input_type
+    attributes:
+      label: Input type
+      description: What kind of input should the tool support?
+      multiple: true
+      options:
+        - Text
+        - File
+        - URL
+        - Clipboard
+        - Mixed
+    validations:
+      required: true
+
+  - type: dropdown
+    id: privacy_requirement
+    attributes:
+      label: Privacy requirement
+      description: Does processing need to stay fully local in the browser?
+      options:
+        - Must stay local (no uploads)
+        - Prefer local, optional cloud fallback
+        - Cloud processing is acceptable
+    validations:
+      required: true
+
+  - type: dropdown
+    id: offline_requirement
+    attributes:
+      label: Offline requirement
+      description: How important is offline support?
+      options:
+        - Required
+        - Nice to have
+        - Not needed
+    validations:
+      required: true
+
+  - type: textarea
+    id: sample_data
+    attributes:
+      label: Sample input or edge cases
+      description: Share examples (no sensitive data).
+      placeholder: Paste sanitized examples, file types, or constraints.
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - High (blocks current work)
+        - Medium (would save time)
+        - Low (nice addition)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues for similar requests.
+          required: true
+        - label: I removed sensitive data from examples.
+          required: true
+

@@ -414,7 +414,7 @@ export default function ImageMetadataTool() {
                     {/* Thumbnail */}
                     <div className="h-9 w-9 shrink-0 overflow-hidden rounded bg-bg-primary">
                       {entry.metadata?.previewUrl ? (
-                        <img src={entry.metadata.previewUrl} alt="" className="h-full w-full object-cover" />
+                        <img src={entry.metadata.previewUrl} alt={`Thumbnail of ${entry.file.name}`} className="h-full w-full object-cover" />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">
                           <svg className="h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
@@ -549,7 +549,7 @@ export default function ImageMetadataTool() {
                   <div className="flex items-start gap-4">
                     {/* Preview */}
                     <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border-card bg-bg-primary">
-                      <img src={metadata.previewUrl} alt="" className="h-full w-full object-cover" />
+                      <img src={metadata.previewUrl} alt={`Preview of ${metadata.fileName}`} className="h-full w-full object-cover" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <h3 className="font-display truncate text-sm font-bold text-text-primary">{metadata.fileName}</h3>
