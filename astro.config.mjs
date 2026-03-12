@@ -13,7 +13,7 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
     optimizeDeps: {
-      include: ['jszip', 'compromise'],
+      include: ['jszip', 'compromise', 'docx'],
       exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util', 'mupdf', '@huggingface/transformers', '@wasm-fmt/clang-format']
     },
   },

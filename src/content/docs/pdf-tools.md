@@ -1,35 +1,36 @@
 ---
 title: "PDF Tools"
-description: "How the PDF Tools suite works — merge, split, compress, and convert PDFs using MuPDF WASM."
+description: "How the PDF Tools suite works — merge, split, compress, convert to images, text, or Word using MuPDF WASM."
 tool: "pdf-tools"
 accent: "red"
 icon: "FileType"
-lastUpdated: 2026-03-10
+lastUpdated: 2026-03-12
 order: 5
 ---
 
 ## What It Does
 
-The PDF Tools suite provides six operations for working with PDF files — all running locally in your browser:
+The PDF Tools suite provides seven operations for working with PDF files — all running locally in your browser:
 
 - **Merge** — Combine multiple PDF files into one
 - **Split** — Split a PDF into individual single-page files
 - **Extract Pages** — Pull specific pages out of a PDF
 - **PDF to Images** — Convert pages to PNG or JPEG
 - **PDF to Text** — Extract text or HTML content from pages
+- **PDF to Word** — Convert PDF to editable Word document (.docx)
 - **Compress** — Reduce PDF file size by optimizing content
 
 ### Key Features
 
-- **Tabbed interface** — Switch between all six tools without leaving the page
+- **Tabbed interface** — Switch between all seven tools without leaving the page
 - **Drag-and-drop reordering** — Rearrange files and pages visually (merge tool)
 - **Page range selection** — Specify exact pages to extract or convert
-- **Multiple output formats** — PNG, JPEG for images; plain text, HTML for text extraction
+- **Multiple output formats** — PNG, JPEG for images; plain text, HTML for text extraction; Word (.docx) for editable documents
 - **Batch processing** — Process multiple PDFs in sequence
 
 ## Architecture
 
-The entire suite is powered by [MuPDF](https://mupdf.com/), a lightweight PDF/XPS/EPUB rendering library compiled to WebAssembly. MuPDF is the same engine used by SumatraPDF and other native PDF readers.
+The entire suite is powered by [MuPDF](https://mupdf.com/), a lightweight PDF/XPS/EPUB rendering library compiled to WebAssembly, combined with the [docx](https://docx.js.org/) library for Word document generation.
 
 ### Processing Pipeline
 
@@ -52,13 +53,14 @@ src/components/pdf-tools/
     ExtractPages.tsx                    → Page extraction tool
     PdfToImages.tsx                     → PDF to image converter
     PdfToText.tsx                       → Text extraction tool
+    PdfToWord.tsx                       → Word conversion tool
     CompressPdf.tsx                     → Compression tool
 src/lib/mupdf.ts                        → MuPDF WASM singleton
 ```
 
 ### Tab Architecture
 
-Unlike other tools that each get their own page, the PDF suite uses a single-page tabbed interface. `PdfToolsApp.tsx` manages tab state and renders the active tool component. All six tools share the same MuPDF WASM instance through the singleton in `mupdf.ts`.
+Unlike other tools that each get their own page, the PDF suite uses a single-page tabbed interface. `PdfToolsApp.tsx` manages tab state and renders the active tool component. All seven tools share the same MuPDF WASM instance through the singleton in `mupdf.ts`.
 
 ## Privacy & Security
 
@@ -71,6 +73,7 @@ PDFs often contain sensitive information — contracts, financial documents, per
 - **In-memory processing**: Uses `saveToBuffer()` to avoid filesystem access
 - **Image output**: PNG or JPEG at configurable DPI/quality
 - **Text output**: Plain text or structured HTML
+- **Word output**: .docx with preserved text formatting and embedded images via the `docx` library
 - **Browser support**: All modern browsers with WebAssembly support
 
 ## FAQs
@@ -89,3 +92,6 @@ Not currently. Password protection and encryption are planned for a future updat
 
 ### Does the text extraction preserve formatting?
 The HTML output mode preserves basic formatting (paragraphs, headings, font styles). Plain text mode extracts raw text without formatting. Neither mode perfectly reproduces the original layout, as PDF text extraction is inherently approximate.
+
+### How accurate is the PDF to Word conversion?
+The converter preserves text content, font styles (bold, italic), font sizes, and embedded images. It maps PDF fonts to standard Word fonts (Arial, Times New Roman, Courier New) and detects headings based on font size. Complex layouts like multi-column text or precise positioning will be approximated — PDF is a fixed-layout format while Word is flow-layout. For best results, use it with text-heavy documents like reports, articles, and letters.

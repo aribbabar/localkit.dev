@@ -341,6 +341,273 @@ export async function compressPdf(file: File): Promise<ConvertedFile> {
   };
 }
 
+// ── PDF to Word (DOCX) ──
+
+interface BBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+interface STextLine {
+  wmode: 0 | 1;
+  bbox: BBox;
+  font: {
+    name: string;
+    family: "serif" | "sans-serif" | "monospace";
+    weight: "normal" | "bold";
+    style: "normal" | "italic";
+    size: number;
+  };
+  x: number;
+  y: number;
+  text: string;
+}
+
+interface STextBlock {
+  type: "image" | "text";
+  bbox: BBox;
+  lines: STextLine[];
+}
+
+interface STextPage {
+  blocks: STextBlock[];
+}
+
+interface ExtractedImage {
+  bbox: number[];
+  pngData: Uint8Array;
+}
+
+// ── Docx builders ──
+
+function mapFont(family: string): string {
+  switch (family) {
+    case "serif":
+      return "Times New Roman";
+    case "monospace":
+      return "Courier New";
+    case "sans-serif":
+    default:
+      return "Arial";
+  }
+}
+
+function getHeadingLevel(
+  fontSize: number,
+  isBold: boolean
+): any {
+  if (!isBold) return undefined;
+  if (fontSize >= 24) return "Heading1";
+  if (fontSize >= 18) return "Heading2";
+  if (fontSize >= 14) return "Heading3";
+  return undefined;
+}
+
+function lineToTextRun(
+  docxLib: typeof import("docx"),
+  line: STextLine,
+  prependSpace: boolean
+): InstanceType<typeof import("docx")["TextRun"]> {
+  const text = prependSpace ? " " + line.text : line.text;
+  return new docxLib.TextRun({
+    text,
+    bold: line.font.weight === "bold",
+    italics: line.font.style === "italic",
+    size: Math.round(line.font.size) * 2,
+    font: mapFont(line.font.family),
+  });
+}
+
+function linesToParagraph(
+  docxLib: typeof import("docx"),
+  lines: STextLine[],
+  detectHeading: boolean = true
+): InstanceType<typeof import("docx")["Paragraph"]> {
+  const runs = lines.map((line, li) => lineToTextRun(docxLib, line, li > 0));
+  const avgSize = lines.reduce((s, l) => s + l.font.size, 0) / lines.length;
+  const isBold = lines.every((l) => l.font.weight === "bold");
+  const heading = detectHeading ? getHeadingLevel(avgSize, isBold) : undefined;
+
+  return new docxLib.Paragraph({
+    children: runs,
+    heading,
+    spacing: { after: 120 },
+  });
+}
+
+function groupLinesIntoParagraphs(lines: STextLine[]): STextLine[][] {
+  const groups: STextLine[][] = [];
+  let current: STextLine[] = [];
+
+  for (const line of lines) {
+    if (current.length === 0) {
+      current.push(line);
+    } else {
+      const prev = current[current.length - 1];
+      const gap = line.bbox.y - (prev.bbox.y + prev.bbox.h);
+      if (gap > prev.font.size * 0.8) {
+        groups.push(current);
+        current = [line];
+      } else {
+        current.push(line);
+      }
+    }
+  }
+  if (current.length > 0) groups.push(current);
+  return groups;
+}
+
+function buildImageParagraph(
+  docxLib: typeof import("docx"),
+  img: ExtractedImage
+): InstanceType<typeof import("docx")["Paragraph"]> | null {
+  try {
+    const imgWidth = Math.abs(img.bbox[2] - img.bbox[0]);
+    const imgHeight = Math.abs(img.bbox[3] - img.bbox[1]);
+    if (imgWidth < 5 || imgHeight < 5) return null; // skip tiny images (decorative)
+
+    const maxWidth = 6 * 72;
+    const scale = imgWidth > maxWidth ? maxWidth / imgWidth : 1;
+
+    return new docxLib.Paragraph({
+      children: [
+        new docxLib.ImageRun({
+          data: img.pngData,
+          transformation: {
+            width: Math.round(imgWidth * scale),
+            height: Math.round(imgHeight * scale),
+          },
+          type: "png",
+        }),
+      ],
+      spacing: { after: 120 },
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ── Main conversion ──
+
+/** Safe stext options for JSON extraction (segment/table-hunt cause invalid JSON in MuPDF WASM) */
+const STEXT_JSON_OPTIONS = "preserve-whitespace,preserve-spans";
+
+/** Options for image extraction via walk() */
+const STEXT_IMAGE_OPTIONS = "preserve-whitespace,preserve-images";
+
+/**
+ * Sanitize JSON output from MuPDF which can produce invalid JSON
+ * (e.g. empty array entries like `[,{...}]` or trailing commas).
+ */
+function sanitizeMuPDFJson(raw: string): string {
+  // Remove empty entries: [, → [   and ,, → ,   and ,] → ]
+  return raw
+    .replace(/\[,/g, "[")
+    .replace(/,,+/g, ",")
+    .replace(/,\s*\]/g, "]")
+    .replace(/,\s*\}/g, "}");
+}
+
+export async function pdfToDocx(
+  file: File,
+  pageIndices?: number[],
+  onProgress?: (done: number, total: number) => void
+): Promise<ConvertedFile> {
+  const mupdf = await getMuPDF();
+  const docxLib = await import("docx");
+  const data = await fileToArrayBuffer(file);
+  const doc = openPdfDocument(mupdf, data);
+
+  const totalPages = doc.countPages();
+  const indices = pageIndices ?? Array.from({ length: totalPages }, (_, i) => i);
+
+  const children: any[] = [];
+
+  for (let i = 0; i < indices.length; i++) {
+    const page = doc.loadPage(indices[i]);
+
+    // Extract text structure
+    const stextForJson = page.toStructuredText(STEXT_JSON_OPTIONS);
+    const rawJson = stextForJson.asJSON();
+    const pageData: STextPage = JSON.parse(sanitizeMuPDFJson(rawJson));
+
+    // Extract images
+    const images: ExtractedImage[] = [];
+    const stextForImages = page.toStructuredText(STEXT_IMAGE_OPTIONS);
+    stextForImages.walk({
+      onImageBlock(bbox: number[], _transform: number[], image: any) {
+        try {
+          const pixmap = image.toPixmap();
+          const pngBuf = pixmap.asPNG();
+          const pngData =
+            pngBuf instanceof Uint8Array ? pngBuf : pngBuf.asUint8Array();
+          images.push({ bbox, pngData });
+        } catch {
+          // skip images that fail to render
+        }
+      },
+    });
+
+    // Add page break before every page except the first
+    if (i > 0) {
+      children.push(
+        new docxLib.Paragraph({ children: [], pageBreakBefore: true })
+      );
+    }
+
+    // Build a combined list sorted by vertical position
+    type ContentItem =
+      | { kind: "block"; block: STextBlock; y: number }
+      | { kind: "image"; image: ExtractedImage; y: number };
+
+    const items: ContentItem[] = [];
+
+    for (const block of pageData.blocks) {
+      items.push({ kind: "block", block, y: block.bbox.y });
+    }
+    for (const image of images) {
+      items.push({ kind: "image", image, y: image.bbox[1] });
+    }
+
+    items.sort((a, b) => a.y - b.y);
+
+    for (const item of items) {
+      if (item.kind === "image") {
+        const p = buildImageParagraph(docxLib, item.image);
+        if (p) children.push(p);
+      } else {
+        const block = item.block;
+        if (block.type === "text" && block.lines) {
+          const paragraphGroups = groupLinesIntoParagraphs(block.lines);
+          for (const group of paragraphGroups) {
+            children.push(linesToParagraph(docxLib, group));
+          }
+        }
+      }
+    }
+
+    onProgress?.(i + 1, indices.length);
+  }
+
+  const docxDoc = new docxLib.Document({
+    sections: [{ children }],
+  });
+
+  const blob = await docxLib.Packer.toBlob(docxDoc);
+  const arrayBuffer = await blob.arrayBuffer();
+  const baseName = stripExtension(file.name);
+
+  return {
+    name: `${baseName}.docx`,
+    blob: new Blob([arrayBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }),
+    buffer: arrayBuffer,
+  };
+}
+
 // ── Page range parser ──
 // Accepts: "1-3, 5, 7-10" and returns 0-based indices
 
