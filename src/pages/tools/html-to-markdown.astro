@@ -1,0 +1,90 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Navbar from "../../components/Navbar.astro";
+import Footer from "../../components/Footer.astro";
+import HtmlToMarkdownApp from "../../components/html-to-markdown/HtmlToMarkdownApp";
+
+const pageTitle = "HTML to Markdown — LocalKit";
+const pageDescription =
+  "Convert HTML to clean Markdown with configurable options — strip styles, scripts, choose heading styles, and more. Supports GFM tables and task lists. 100% in your browser.";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "HTML to Markdown",
+  url: "https://localkit.dev/tools/html-to-markdown",
+  description: pageDescription,
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any (browser-based)",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  featureList: [
+    "HTML to Markdown conversion",
+    "Strip CSS styles and inline attributes",
+    "Strip script tags",
+    "Strip images for text-only output",
+    "GitHub Flavored Markdown (GFM) support",
+    "Tables, strikethrough, and task lists",
+    "Configurable heading style (ATX or Setext)",
+    "Configurable bullet markers and code block style",
+    "Inline or referenced link style",
+    "File upload support (.html, .htm)",
+    "Copy to clipboard and download as .md",
+    "100% client-side processing",
+  ],
+  isPartOf: {
+    "@type": "WebSite",
+    name: "LocalKit",
+    url: "https://localkit.dev",
+  },
+};
+---
+
+<Layout title={pageTitle} description={pageDescription} ogImage="https://localkit.dev/og/html-to-markdown.png">
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </Fragment>
+  <Navbar />
+
+  <main class="relative pt-24 pb-16 md:pt-32 md:pb-24">
+    <!-- Background effects -->
+    <div class="pointer-events-none absolute inset-0">
+      <div class="absolute -top-40 -right-40 h-[400px] w-[400px] rounded-full bg-accent-orange/6 blur-[120px]"></div>
+      <div class="absolute -bottom-20 -left-40 h-[300px] w-[300px] rounded-full bg-accent-teal/5 blur-[100px]"></div>
+    </div>
+
+    <div class="relative mx-auto max-w-5xl px-6">
+      <!-- Header -->
+      <div class="mb-8">
+        <a href="/" class="mb-4 inline-flex items-center gap-1.5 text-xs text-text-muted transition-colors hover:text-text-secondary">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Back to tools
+        </a>
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg border border-accent-orange/20 bg-accent-orange/10">
+            <svg class="h-5 w-5 text-accent-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="font-display text-2xl font-bold text-text-primary">HTML to Markdown</h1>
+            <p class="text-sm text-text-muted">Convert HTML to clean Markdown with configurable options</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy badge -->
+      <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-border-card bg-bg-secondary px-3 py-1">
+        <svg class="h-3.5 w-3.5 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+        </svg>
+        <span class="text-xs text-text-secondary">100% client-side — nothing leaves your browser</span>
+      </div>
+
+      <HtmlToMarkdownApp client:load />
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
