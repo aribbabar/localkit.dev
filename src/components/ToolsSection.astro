@@ -141,7 +141,7 @@ const tools = [
     <!-- Tools Grid -->
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" id="tools-grid">
       {tools.map((tool) => (
-        <div data-category={tool.category}>
+        <div data-category={tool.category} data-title={tool.title.toLowerCase()} data-description={tool.description.toLowerCase()}>
           <ToolCard
             title={tool.title}
             description={tool.description}
@@ -175,10 +175,26 @@ const tools = [
   document.addEventListener("DOMContentLoaded", () => {
     const tabs = document.querySelectorAll<HTMLButtonElement>(".filter-tab");
     const cards = document.querySelectorAll<HTMLElement>("#tools-grid > [data-category]");
+    const searchInput = document.querySelector<HTMLInputElement>("#search-input");
+
+    let activeCategory = "all";
+
+    function filterCards() {
+      const query = (searchInput?.value ?? "").toLowerCase().trim();
+
+      cards.forEach((card) => {
+        const matchesCategory = activeCategory === "all" || card.dataset.category === activeCategory;
+        const matchesSearch = !query
+          || card.dataset.title?.includes(query)
+          || card.dataset.description?.includes(query);
+
+        card.style.display = matchesCategory && matchesSearch ? "" : "none";
+      });
+    }
 
     tabs.forEach((tab) => {
       tab.addEventListener("click", () => {
-        const category = tab.dataset.category;
+        activeCategory = tab.dataset.category ?? "all";
 
         // Update active tab styles
         tabs.forEach((t) => {
@@ -188,15 +204,20 @@ const tools = [
         tab.classList.add("bg-bg-card", "border-border-card-hover", "text-text-primary");
         tab.classList.remove("border-transparent", "text-text-muted");
 
-        // Filter cards
-        cards.forEach((card) => {
-          if (category === "all" || card.dataset.category === category) {
-            card.style.display = "";
-          } else {
-            card.style.display = "none";
-          }
-        });
+        filterCards();
       });
+    });
+
+    // Search input filtering
+    searchInput?.addEventListener("input", filterCards);
+
+    // Ctrl+K shortcut to focus search
+    document.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        searchInput?.focus();
+        searchInput?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
     });
   });
 </script>
