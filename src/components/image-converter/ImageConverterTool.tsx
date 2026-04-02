@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type DragEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import type { ConvertedFile, ImageInfo } from "../../lib/imagemagick";
+import { loadImageConverterPreferences, saveImageConverterPreferences } from "./preferences";
 import styles from "./ImageConverterTool.module.css";
 
 let imagemagick: typeof import("../../lib/imagemagick") | null = null;
@@ -39,41 +40,32 @@ function isAcceptedImage(file: File) {
   return file.type.startsWith("image/") || INPUT_EXTENSION_PATTERN.test(file.name);
 }
 
+type EstimateState = {
+  perFile: (number | null)[];
+  total: number;
+  count: number;
+  pending: number;
+};
+
 export default function ImageConverterTool() {
+  const savedPreferences = useMemo(loadImageConverterPreferences, []);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [convertedFiles, setConvertedFiles] = useState<ConvertedFile[]>([]);
-  const [outputFormat, setOutputFormat] = useState("png");
+  const [outputFormat, setOutputFormat] = useState(savedPreferences.outputFormat);
   const [outputFormats, setOutputFormats] = useState(FALLBACK_OUTPUT_FORMATS);
-  const [quality, setQuality] = useState(90);
-  const [resize, setResize] = useState("");
-  const [stripMetadata, setStripMetadata] = useState(false);
+  const [quality, setQuality] = useState(savedPreferences.quality);
+  const [resize, setResize] = useState(savedPreferences.resize);
+  const [stripMetadata, setStripMetadata] = useState(savedPreferences.stripMetadata);
   const [imageInfos, setImageInfos] = useState<(ImageInfo | null)[]>([]);
+  const [fileEstimates, setFileEstimates] = useState<EstimateState | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [isZipping, setIsZipping] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const estimateVersionRef = useRef(0);
 
   const hasFiles = selectedFiles.length > 0;
   const showQuality = useMemo(() => LOSSY_FORMATS.has(outputFormat), [outputFormat]);
-
-  // Compute per-file and total estimated sizes
-  const fileEstimates = useMemo(() => {
-    if (!imageInfos.length || !imagemagick) return null;
-    const opts = {
-      quality: showQuality ? quality : undefined,
-      resize: resize.trim() || undefined,
-    };
-    const estimates: (number | null)[] = imageInfos.map((info) =>
-      info ? imagemagick!.estimateOutputSize(info, outputFormat, opts) : null
-    );
-    const validEstimates = estimates.filter((e): e is number => e !== null);
-    if (!validEstimates.length) return null;
-    return {
-      perFile: estimates,
-      total: validEstimates.reduce((sum, e) => sum + e, 0),
-      count: validEstimates.length,
-    };
-  }, [imageInfos, outputFormat, quality, showQuality, resize]);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +95,83 @@ export default function ImageConverterTool() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    saveImageConverterPreferences({ outputFormat, quality, resize, stripMetadata });
+  }, [outputFormat, quality, resize, stripMetadata]);
+
+  useEffect(() => {
+    if (!selectedFiles.length) {
+      setFileEstimates(null);
+      return;
+    }
+
+    const nextPerFile = selectedFiles.map(() => null);
+    const readyCount = selectedFiles.reduce((count, _, index) => count + (imageInfos[index] ? 1 : 0), 0);
+    setFileEstimates({
+      perFile: nextPerFile,
+      total: 0,
+      count: 0,
+      pending: readyCount,
+    });
+
+    if (!readyCount) {
+      return;
+    }
+
+    const version = estimateVersionRef.current + 1;
+    estimateVersionRef.current = version;
+    let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const lib = await getImageMagick();
+          const opts = {
+            quality: showQuality ? quality : undefined,
+            resize: resize.trim() || undefined,
+            strip: stripMetadata,
+          };
+
+          const estimates = await Promise.all(
+            selectedFiles.map((file, index) => {
+              const info = imageInfos[index];
+              if (!info) {
+                return Promise.resolve(null);
+              }
+
+              return lib.estimateOutputSize(file, info, outputFormat, opts).catch(() => null);
+            })
+          );
+
+          if (cancelled || estimateVersionRef.current !== version) {
+            return;
+          }
+
+          const validEstimates = estimates.filter((estimate): estimate is number => estimate !== null);
+          setFileEstimates({
+            perFile: estimates,
+            total: validEstimates.reduce((sum, estimate) => sum + estimate, 0),
+            count: validEstimates.length,
+            pending: 0,
+          });
+        } catch {
+          if (!cancelled && estimateVersionRef.current === version) {
+            setFileEstimates({
+              perFile: nextPerFile,
+              total: 0,
+              count: 0,
+              pending: 0,
+            });
+          }
+        }
+      })();
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [selectedFiles, imageInfos, outputFormat, quality, showQuality, resize, stripMetadata]);
 
   function addFiles(files: File[]) {
     const nextFiles = files.filter(isAcceptedImage);
@@ -152,6 +221,7 @@ export default function ImageConverterTool() {
   function clearFiles() {
     setSelectedFiles([]);
     setImageInfos([]);
+    setFileEstimates(null);
     setConvertedFiles([]);
     setProgress({ done: 0, total: 0 });
   }
@@ -312,6 +382,9 @@ export default function ImageConverterTool() {
                             {" "}&rarr; ~{formatSize(fileEstimates.perFile[index])}
                           </span>
                         )}
+                        {fileEstimates?.perFile[index] == null && fileEstimates?.pending > 0 && imageInfos[index] && (
+                          <span className="text-text-muted/60"> {" "}&rarr; estimating...</span>
+                        )}
                       </p>
                     </div>
                     <button
@@ -432,13 +505,15 @@ export default function ImageConverterTool() {
                 {isConverting ? "Converting..." : "Convert"}
               </button>
 
-              {fileEstimates && (
+              {fileEstimates && (fileEstimates.count > 0 || fileEstimates.pending > 0) && (
                 <div className="mt-3 rounded-lg border border-border-card bg-bg-secondary px-3 py-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-text-muted">Estimated output</span>
-                    <span className="font-mono text-xs text-text-secondary">~{formatSize(fileEstimates.total)}</span>
+                    <span className="font-mono text-xs text-text-secondary">
+                      {fileEstimates.count > 0 ? `~${formatSize(fileEstimates.total)}` : "Estimating..."}
+                    </span>
                   </div>
-                  {fileEstimates.count < selectedFiles.length && (
+                  {(fileEstimates.count < selectedFiles.length || fileEstimates.pending > 0) && (
                     <p className="mt-0.5 text-[10px] text-text-muted">
                       ({fileEstimates.count}/{selectedFiles.length} files estimated)
                     </p>

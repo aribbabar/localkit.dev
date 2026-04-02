@@ -32,7 +32,7 @@ The converter is powered by [ImageMagick](https://imagemagick.org/), compiled to
 1. **File drop** — User drops images onto the drop zone. Files are read as `ArrayBuffer` via the File API.
 2. **WASM init** — The ImageMagick WASM module (~5MB) loads lazily on first use (triggered by file add for size estimation, or on first conversion).
 3. **Image info** — On file add, each image is read via ImageMagick to extract dimensions and channel count. This powers the live size estimates.
-4. **Size estimation** — Heuristic estimates are computed per file based on target format, quality, and resize settings. Lossless formats (BMP, PPM, TIFF) are near-exact; lossy formats (JPG, HEIC) use quality-based curves and are approximate.
+4. **Size estimation** — Estimates are computed per file by running a small sample encode in ImageMagick WASM using the current output settings. Small outputs are encoded at full size; larger ones use representative samples and extrapolation. Raw formats (BMP, PPM, PGM, TGA) remain near-exact.
 5. **Conversion** — Each image is decoded by ImageMagick, converted to the target format in memory, and returned as a `Uint8Array`.
 6. **Output** — Converted files are wrapped as Blob URLs for individual download, or packaged into a ZIP using jszip for batch download. Each result shows the original and output size with percentage change.
 
@@ -76,4 +76,4 @@ Lossy formats (JPG, HEIC, HEIF) reduce file size by discarding some image data. 
 
 ### How accurate are the size estimates?
 
-Estimates for uncompressed formats (BMP, PPM, TIFF) are near-exact. For lossy formats like JPG and HEIC, estimates use heuristic curves based on quality settings and can vary from the actual output — image content (detail, noise, gradients) heavily affects compression. Treat lossy estimates as a rough guide.
+The estimator is more accurate than a simple bytes-per-pixel heuristic because it performs a real sample encode with the selected format, resize, quality, and metadata settings. Small outputs can be exact; larger lossy outputs are still estimates because full-image detail, palette behavior, and metadata preservation affect final compression. Treat them as a close preview, not a guarantee.
