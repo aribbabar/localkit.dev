@@ -1,24 +1,31 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import { defineConfig } from "astro/config";
 
-import tailwindcss from '@tailwindcss/vite';
-import wasm from 'vite-plugin-wasm';
-import topLevelAwait from 'vite-plugin-top-level-await';
+import tailwindcss from "@tailwindcss/vite";
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
 
-import react from '@astrojs/react';
-import sitemap from '@astrojs/sitemap';
+import react from "@astrojs/react";
+import sitemap from "@astrojs/sitemap";
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://localkit.dev',
+  site: "https://localkit.dev",
 
   vite: {
     plugins: [tailwindcss(), wasm(), topLevelAwait()],
     optimizeDeps: {
-      include: ['jszip', 'compromise', 'docx'],
-      exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util', 'mupdf', '@huggingface/transformers', '@wasm-fmt/clang-format', 'vectortracer', 'esm-potrace-wasm']
+      include: ["jszip", "compromise", "docx"],
+      exclude: [
+        "@ffmpeg/ffmpeg",
+        "@ffmpeg/util",
+        "mupdf",
+        "@huggingface/transformers",
+        "@wasm-fmt/clang-format",
+        "esm-potrace-wasm",
+      ],
     },
   },
 
-  integrations: [react(), sitemap()]
+  integrations: [react(), sitemap()],
 });

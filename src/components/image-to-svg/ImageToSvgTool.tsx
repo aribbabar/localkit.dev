@@ -1,5 +1,11 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type DragEvent } from "react";
-import type { EngineType, SvgResult, VTracerOptions, PotraceOptions } from "../../lib/image-to-svg";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+} from "react";
+import type { SvgResult, PotraceOptions } from "../../lib/image-to-svg";
 import {
   DEFAULT_IMAGE_TO_SVG_PREFERENCES,
   loadImageToSvgPreferences,
@@ -16,7 +22,8 @@ async function getLib() {
   return imageToSvgLib;
 }
 
-const ACCEPTED_INPUTS = "image/png,image/jpeg,image/gif,image/bmp,image/webp,image/tiff";
+const ACCEPTED_INPUTS =
+  "image/png,image/jpeg,image/gif,image/bmp,image/webp,image/tiff";
 
 function isAcceptedImage(file: File) {
   return file.type.startsWith("image/");
@@ -43,7 +50,15 @@ const BG_STYLES: Record<BgMode, React.CSSProperties> = {
   },
 };
 
-const TURN_POLICY_LABELS = ["Black", "White", "Left", "Right", "Minority", "Majority", "Random"];
+const TURN_POLICY_LABELS = [
+  "Black",
+  "White",
+  "Left",
+  "Right",
+  "Minority",
+  "Majority",
+  "Random",
+];
 
 export default function ImageToSvgTool() {
   const savedPreferences = useMemo(loadImageToSvgPreferences, []);
@@ -52,16 +67,20 @@ export default function ImageToSvgTool() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [convertedResults, setConvertedResults] = useState<SvgResult[]>([]);
 
-  // Engine & settings
-  const [engine, setEngine] = useState<EngineType>(savedPreferences.engine);
-  const [vtracerOpts, setVtracerOpts] = useState<VTracerOptions>(savedPreferences.vtracer);
-  const [potraceOpts, setPotraceOpts] = useState<PotraceOptions>(savedPreferences.potrace);
+  // Settings
+  const [potraceOpts, setPotraceOpts] = useState<PotraceOptions>(
+    savedPreferences.potrace,
+  );
 
   // UI states
   const [isDragging, setIsDragging] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [isZipping, setIsZipping] = useState(false);
-  const [progress, setProgress] = useState({ fileIndex: 0, fileProgress: 0, total: 0 });
+  const [progress, setProgress] = useState({
+    fileIndex: 0,
+    fileProgress: 0,
+    total: 0,
+  });
 
   // Preview
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -76,8 +95,8 @@ export default function ImageToSvgTool() {
 
   // Save preferences
   useEffect(() => {
-    saveImageToSvgPreferences({ engine, vtracer: vtracerOpts, potrace: potraceOpts });
-  }, [engine, vtracerOpts, potraceOpts]);
+    saveImageToSvgPreferences({ potrace: potraceOpts });
+  }, [potraceOpts]);
 
   // Build preview blob URLs
   useEffect(() => {
@@ -167,7 +186,7 @@ export default function ImageToSvgTool() {
       const { convertBatch } = await getLib();
       const results = await convertBatch(
         selectedFiles,
-        { engine, vtracer: vtracerOpts, potrace: potraceOpts },
+        { potrace: potraceOpts },
         (fileIndex, fileProgress, totalFiles) =>
           setProgress({ fileIndex, fileProgress, total: totalFiles }),
       );
@@ -225,26 +244,23 @@ export default function ImageToSvgTool() {
 
   // ── Helpers for settings ─────────────────────────────────────────────
 
-  function updateVTracer<K extends keyof VTracerOptions>(key: K, value: VTracerOptions[K]) {
-    setVtracerOpts((prev) => ({ ...prev, [key]: value }));
-  }
-
-  function updatePotrace<K extends keyof PotraceOptions>(key: K, value: PotraceOptions[K]) {
+  function updatePotrace<K extends keyof PotraceOptions>(
+    key: K,
+    value: PotraceOptions[K],
+  ) {
     setPotraceOpts((prev) => ({ ...prev, [key]: value }));
   }
 
   function resetSettings() {
-    if (engine === "vtracer") {
-      setVtracerOpts({ ...DEFAULT_IMAGE_TO_SVG_PREFERENCES.vtracer });
-    } else {
-      setPotraceOpts({ ...DEFAULT_IMAGE_TO_SVG_PREFERENCES.potrace });
-    }
+    setPotraceOpts({ ...DEFAULT_IMAGE_TO_SVG_PREFERENCES.potrace });
   }
 
   // ── Render ───────────────────────────────────────────────────────────
 
   const progressPercent = progress.total
-    ? Math.round(((progress.fileIndex + progress.fileProgress) / progress.total) * 100)
+    ? Math.round(
+        ((progress.fileIndex + progress.fileProgress) / progress.total) * 100,
+      )
     : 0;
 
   return (
@@ -287,10 +303,15 @@ export default function ImageToSvgTool() {
           </div>
 
           <p className="font-display text-sm font-semibold text-text-primary">
-            Drop images here or <span className="text-accent-purple">browse</span>
+            Drop images here or{" "}
+            <span className="text-accent-purple">browse</span>
           </p>
-          <p className="mt-1.5 text-xs text-text-muted">PNG, JPG, GIF, BMP, WebP, TIFF</p>
-          <p className="mt-1 text-xs text-text-muted">Multiple files supported for batch conversion</p>
+          <p className="mt-1.5 text-xs text-text-muted">
+            PNG, JPG, GIF, BMP, WebP, TIFF
+          </p>
+          <p className="mt-1 text-xs text-text-muted">
+            Multiple files supported for batch conversion
+          </p>
         </div>
 
         {/* SVG Preview */}
@@ -300,20 +321,26 @@ export default function ImageToSvgTool() {
             <div className="flex items-center justify-between border-b border-border-card px-4 py-2">
               <div className="flex items-center gap-2">
                 {/* View mode toggle */}
-                {(["svg", "original", "side-by-side"] as ViewMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setViewMode(mode)}
-                    className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${
-                      viewMode === mode
-                        ? "bg-accent-purple/20 text-accent-purple"
-                        : "text-text-muted hover:text-text-secondary"
-                    }`}
-                  >
-                    {mode === "side-by-side" ? "Side by Side" : mode === "svg" ? "SVG" : "Original"}
-                  </button>
-                ))}
+                {(["svg", "original", "side-by-side"] as ViewMode[]).map(
+                  (mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setViewMode(mode)}
+                      className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${
+                        viewMode === mode
+                          ? "bg-accent-purple/20 text-accent-purple"
+                          : "text-text-muted hover:text-text-secondary"
+                      }`}
+                    >
+                      {mode === "side-by-side"
+                        ? "Side by Side"
+                        : mode === "svg"
+                          ? "SVG"
+                          : "Original"}
+                    </button>
+                  ),
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {/* Background mode */}
@@ -323,11 +350,22 @@ export default function ImageToSvgTool() {
                     type="button"
                     onClick={() => setBgMode(mode)}
                     className={`h-5 w-5 rounded border transition-colors ${
-                      bgMode === mode ? "border-accent-purple ring-1 ring-accent-purple" : "border-border-card"
+                      bgMode === mode
+                        ? "border-accent-purple ring-1 ring-accent-purple"
+                        : "border-border-card"
                     }`}
-                    style={mode === "checker"
-                      ? { backgroundImage: "linear-gradient(45deg, #666 25%, transparent 25%, transparent 75%, #666 75%)", backgroundSize: "6px 6px", backgroundColor: "#999" }
-                      : { backgroundColor: mode === "dark" ? "#0c0c1d" : "#ffffff" }
+                    style={
+                      mode === "checker"
+                        ? {
+                            backgroundImage:
+                              "linear-gradient(45deg, #666 25%, transparent 25%, transparent 75%, #666 75%)",
+                            backgroundSize: "6px 6px",
+                            backgroundColor: "#999",
+                          }
+                        : {
+                            backgroundColor:
+                              mode === "dark" ? "#0c0c1d" : "#ffffff",
+                          }
                     }
                     title={mode}
                   />
@@ -339,7 +377,9 @@ export default function ImageToSvgTool() {
                   className="rounded border border-border-card bg-bg-secondary px-1.5 py-0.5 text-[10px] text-text-secondary outline-none"
                 >
                   {[50, 75, 100, 150, 200].map((z) => (
-                    <option key={z} value={z}>{z}%</option>
+                    <option key={z} value={z}>
+                      {z}%
+                    </option>
                   ))}
                 </select>
               </div>
@@ -348,25 +388,49 @@ export default function ImageToSvgTool() {
             {/* Preview area */}
             <div
               className="flex items-center justify-center overflow-hidden"
-              style={{ ...BG_STYLES[bgMode], minHeight: "300px", maxHeight: "500px" }}
+              style={{
+                ...BG_STYLES[bgMode],
+                minHeight: "300px",
+                maxHeight: "500px",
+              }}
             >
               {currentResult?.error ? (
                 <div className="flex flex-col items-center gap-2 p-6 text-center">
-                  <svg className="h-8 w-8 text-accent-red" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                  <svg
+                    className="h-8 w-8 text-accent-red"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                    />
                   </svg>
-                  <p className="text-xs text-accent-red font-medium">Conversion Failed</p>
-                  <p className="text-[10px] text-text-muted max-w-xs">{currentResult.error}</p>
+                  <p className="text-xs text-accent-red font-medium">
+                    Conversion Failed
+                  </p>
+                  <p className="text-[10px] text-text-muted max-w-xs">
+                    {currentResult.error}
+                  </p>
                 </div>
               ) : viewMode === "side-by-side" ? (
-                <div className="flex w-full h-full" style={{ minHeight: "300px", maxHeight: "500px" }}>
+                <div
+                  className="flex w-full h-full"
+                  style={{ minHeight: "300px", maxHeight: "500px" }}
+                >
                   <div className="flex-1 flex items-center justify-center border-r border-border-card/30 p-2 overflow-hidden">
                     {originalBlobUrl && (
                       <img
                         src={originalBlobUrl}
                         alt="Original"
                         className="max-h-full max-w-full object-contain"
-                        style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center center" }}
+                        style={{
+                          transform: `scale(${zoom / 100})`,
+                          transformOrigin: "center center",
+                        }}
                       />
                     )}
                   </div>
@@ -376,7 +440,10 @@ export default function ImageToSvgTool() {
                         src={svgBlobUrl}
                         alt="SVG Preview"
                         className="max-h-full max-w-full object-contain"
-                        style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center center" }}
+                        style={{
+                          transform: `scale(${zoom / 100})`,
+                          transformOrigin: "center center",
+                        }}
                       />
                     )}
                   </div>
@@ -387,7 +454,10 @@ export default function ImageToSvgTool() {
                     src={originalBlobUrl}
                     alt="Original"
                     className="max-h-full max-w-full object-contain"
-                    style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center center" }}
+                    style={{
+                      transform: `scale(${zoom / 100})`,
+                      transformOrigin: "center center",
+                    }}
                   />
                 )
               ) : (
@@ -396,7 +466,10 @@ export default function ImageToSvgTool() {
                     src={svgBlobUrl}
                     alt="SVG Preview"
                     className="max-h-full max-w-full object-contain p-2"
-                    style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center center" }}
+                    style={{
+                      transform: `scale(${zoom / 100})`,
+                      transformOrigin: "center center",
+                    }}
                   />
                 )
               )}
@@ -411,8 +484,18 @@ export default function ImageToSvgTool() {
                   disabled={previewIndex === 0}
                   className="rounded p-1 text-text-muted transition-colors hover:text-text-primary disabled:opacity-30"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 19l-7-7 7-7"
+                    />
                   </svg>
                 </button>
                 <span className="text-xs text-text-secondary">
@@ -420,12 +503,26 @@ export default function ImageToSvgTool() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setPreviewIndex((i) => Math.min(convertedResults.length - 1, i + 1))}
+                  onClick={() =>
+                    setPreviewIndex((i) =>
+                      Math.min(convertedResults.length - 1, i + 1),
+                    )
+                  }
                   disabled={previewIndex === convertedResults.length - 1}
                   className="rounded p-1 text-text-muted transition-colors hover:text-text-primary disabled:opacity-30"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                 </button>
               </div>
@@ -441,7 +538,10 @@ export default function ImageToSvgTool() {
           <div className="rounded-xl border border-border-card bg-bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-display text-sm font-semibold text-text-primary">
-                Selected Files <span className="text-text-muted">({selectedFiles.length})</span>
+                Selected Files{" "}
+                <span className="text-text-muted">
+                  ({selectedFiles.length})
+                </span>
               </h3>
               <button
                 type="button"
@@ -474,8 +574,12 @@ export default function ImageToSvgTool() {
                     </svg>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-text-primary">{file.name}</p>
-                    <p className="text-[10px] text-text-muted">{formatSize(file.size)}</p>
+                    <p className="truncate text-xs font-medium text-text-primary">
+                      {file.name}
+                    </p>
+                    <p className="text-[10px] text-text-muted">
+                      {formatSize(file.size)}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -483,8 +587,18 @@ export default function ImageToSvgTool() {
                     className="shrink-0 text-text-muted transition-colors hover:text-accent-red"
                     aria-label={`Remove ${file.name}`}
                   >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -493,11 +607,13 @@ export default function ImageToSvgTool() {
           </div>
         )}
 
-        {/* Engine & settings */}
+        {/* Settings */}
         {hasFiles && (
           <div className="rounded-xl border border-border-card bg-bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-display text-sm font-semibold text-text-primary">Vectorization Settings</h3>
+              <h3 className="font-display text-sm font-semibold text-text-primary">
+                Vectorization Settings
+              </h3>
               <button
                 type="button"
                 onClick={resetSettings}
@@ -508,197 +624,110 @@ export default function ImageToSvgTool() {
               </button>
             </div>
 
-            {/* Engine selector */}
             <div className="mb-4">
-              <label className="mb-1.5 block text-xs font-medium text-text-secondary">Engine</label>
-              <div className="flex rounded-lg border border-border-card overflow-hidden">
-                {(["vtracer", "potrace"] as EngineType[]).map((eng) => (
-                  <button
-                    key={eng}
-                    type="button"
-                    onClick={() => setEngine(eng)}
-                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                      engine === eng
-                        ? "bg-accent-purple/20 text-accent-purple"
-                        : "bg-bg-secondary text-text-muted hover:text-text-secondary"
-                    }`}
-                  >
-                    {eng === "vtracer" ? "VTracer" : "Potrace"}
-                  </button>
-                ))}
-              </div>
-              {engine === "vtracer" && (
-                <p className="mt-1.5 flex items-center gap-1 text-[10px] text-amber-400/80">
-                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
-                  </svg>
-                  VTracer outputs black &amp; white only. Use Potrace for color output.
-                </p>
-              )}
-              {engine === "potrace" && (
-                <p className="mt-1.5 flex items-center gap-1 text-[10px] text-text-muted">
-                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Potrace is licensed under GPL-v2.0
-                </p>
-              )}
+              <p className="flex items-center gap-1 text-[10px] text-text-muted">
+                <svg
+                  className="h-3 w-3 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Potrace is the only tracing engine for this tool and is licensed
+                under GPL-v2.0.
+              </p>
             </div>
 
             <div className="space-y-3">
-              {/* ── VTracer settings ─────────────────────────────────────── */}
-              {engine === "vtracer" && (
-                <>
-                  <SelectField
-                    label="Path Mode"
-                    value={vtracerOpts.mode}
-                    onChange={(e) => updateVTracer("mode", e.target.value as VTracerOptions["mode"])}
-                    tooltip="How curves are drawn. Spline creates smooth curves, Polygon uses straight line segments."
-                  >
-                    <option value="spline">Spline (smooth curves)</option>
-                    <option value="polygon">Polygon (straight edges)</option>
-                    <option value="none">None</option>
-                  </SelectField>
+              <SliderField
+                label="Noise Filter"
+                value={potraceOpts.turdsize}
+                min={0}
+                max={100}
+                step={1}
+                onChange={(v) => updatePotrace("turdsize", v)}
+                tooltip="Removes small speckles and noise smaller than this area (in pixels). Higher values give a cleaner result but may remove small details."
+              />
 
-                  <SliderField
-                    label="Filter Speckle"
-                    value={vtracerOpts.filterSpeckle}
-                    min={0} max={128} step={1}
-                    onChange={(v) => updateVTracer("filterSpeckle", v)}
-                    tooltip="Removes small noise and dots smaller than this size (in pixels). Higher values produce cleaner output but may lose small details."
-                  />
+              <SelectField
+                label="Turn Policy"
+                value={potraceOpts.turnpolicy}
+                onChange={(e) =>
+                  updatePotrace("turnpolicy", Number(e.target.value))
+                }
+                tooltip="How to resolve ambiguities when tracing edges. Minority and Majority usually give the best results for most images."
+              >
+                {TURN_POLICY_LABELS.map((label, i) => (
+                  <option key={i} value={i}>
+                    {label}
+                  </option>
+                ))}
+              </SelectField>
 
-                  <SliderField
-                    label="Corner Threshold"
-                    value={vtracerOpts.cornerThreshold}
-                    min={0} max={180} step={1}
-                    onChange={(v) => updateVTracer("cornerThreshold", v)}
-                    unit="°"
-                    tooltip="Angle below which a point is treated as a sharp corner. Lower values create more corners, higher values produce smoother curves."
-                  />
+              <SliderField
+                label="Corner Smoothness"
+                value={potraceOpts.alphamax}
+                min={0}
+                max={1.34}
+                step={0.01}
+                onChange={(v) => updatePotrace("alphamax", v)}
+                tooltip="Controls how smooth corners are. 0 produces only sharp corners, 1.34 creates the smoothest possible curves."
+              />
 
-                  <SliderField
-                    label="Length Threshold"
-                    value={vtracerOpts.lengthThreshold}
-                    min={3.5} max={10} step={0.1}
-                    onChange={(v) => updateVTracer("lengthThreshold", v)}
-                    tooltip="Minimum length of a line segment. Short segments below this value get merged together. Higher values simplify the output."
-                  />
+              <CheckboxField
+                label="Optimize curves"
+                checked={potraceOpts.opticurve === 1}
+                onChange={(v) => updatePotrace("opticurve", v ? 1 : 0)}
+                tooltip="Joins adjacent curves to create a simpler, smaller SVG file. Usually produces better results when enabled."
+              />
 
-                  <SliderField
-                    label="Max Iterations"
-                    value={vtracerOpts.maxIterations}
-                    min={1} max={20} step={1}
-                    onChange={(v) => updateVTracer("maxIterations", v)}
-                    tooltip="How many times the algorithm refines the curves. More iterations give a better fit to the original but take longer."
-                  />
+              <SliderField
+                label="Optimization Tolerance"
+                value={potraceOpts.opttolerance}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={(v) => updatePotrace("opttolerance", v)}
+                tooltip="How much curves can deviate when being optimized. Higher values produce simpler output but less accurately match the original."
+              />
 
-                  <SliderField
-                    label="Splice Threshold"
-                    value={vtracerOpts.spliceThreshold}
-                    min={0} max={180} step={1}
-                    onChange={(v) => updateVTracer("spliceThreshold", v)}
-                    unit="°"
-                    tooltip="Angle threshold for joining line segments into curves. Higher values merge more segments together."
-                  />
+              <CheckboxField
+                label="Extract colors"
+                checked={potraceOpts.extractcolors}
+                onChange={(v) => updatePotrace("extractcolors", v)}
+                tooltip="Detects and preserves colors from the original image. When off, output is black and white only."
+              />
 
-                  <SliderField
-                    label="Path Precision"
-                    value={vtracerOpts.pathPrecision}
-                    min={0} max={8} step={1}
-                    onChange={(v) => updateVTracer("pathPrecision", v)}
-                    tooltip="Number of decimal places in SVG coordinates. Higher values are more precise but increase file size."
-                  />
+              <SliderField
+                label="Color Levels"
+                value={potraceOpts.posterizelevel}
+                min={1}
+                max={255}
+                step={1}
+                onChange={(v) => updatePotrace("posterizelevel", v)}
+                tooltip="Number of color levels to use. Higher values capture more color detail but create a more complex (larger) SVG."
+              />
 
-                  <SliderField
-                    label="Scale"
-                    value={vtracerOpts.scale}
-                    min={0.1} max={4} step={0.1}
-                    onChange={(v) => updateVTracer("scale", v)}
-                    unit="x"
-                    tooltip="Scales the SVG output. 1x keeps the same size as the original image."
-                  />
-
-                  <CheckboxField
-                    label="Invert image"
-                    checked={vtracerOpts.invert}
-                    onChange={(v) => updateVTracer("invert", v)}
-                    tooltip="Swaps black and white areas before tracing. Useful when the subject is lighter than the background."
-                  />
-                </>
-              )}
-
-              {/* ── Potrace settings ────────────────────────────────────── */}
-              {engine === "potrace" && (
-                <>
-                  <SliderField
-                    label="Noise Filter"
-                    value={potraceOpts.turdsize}
-                    min={0} max={100} step={1}
-                    onChange={(v) => updatePotrace("turdsize", v)}
-                    tooltip="Removes small speckles and noise smaller than this area (in pixels). Higher values give a cleaner result but may remove small details."
-                  />
-
-                  <SelectField
-                    label="Turn Policy"
-                    value={potraceOpts.turnpolicy}
-                    onChange={(e) => updatePotrace("turnpolicy", Number(e.target.value))}
-                    tooltip="How to resolve ambiguities when tracing edges. Minority and Majority usually give the best results for most images."
-                  >
-                    {TURN_POLICY_LABELS.map((label, i) => (
-                      <option key={i} value={i}>{label}</option>
-                    ))}
-                  </SelectField>
-
-                  <SliderField
-                    label="Corner Smoothness"
-                    value={potraceOpts.alphamax}
-                    min={0} max={1.34} step={0.01}
-                    onChange={(v) => updatePotrace("alphamax", v)}
-                    tooltip="Controls how smooth corners are. 0 produces only sharp corners, 1.34 creates the smoothest possible curves."
-                  />
-
-                  <CheckboxField
-                    label="Optimize curves"
-                    checked={potraceOpts.opticurve === 1}
-                    onChange={(v) => updatePotrace("opticurve", v ? 1 : 0)}
-                    tooltip="Joins adjacent curves to create a simpler, smaller SVG file. Usually produces better results when enabled."
-                  />
-
-                  <SliderField
-                    label="Optimization Tolerance"
-                    value={potraceOpts.opttolerance}
-                    min={0} max={1} step={0.01}
-                    onChange={(v) => updatePotrace("opttolerance", v)}
-                    tooltip="How much curves can deviate when being optimized. Higher values produce simpler output but less accurately match the original."
-                  />
-
-                  <CheckboxField
-                    label="Extract colors"
-                    checked={potraceOpts.extractcolors}
-                    onChange={(v) => updatePotrace("extractcolors", v)}
-                    tooltip="Detects and preserves colors from the original image. When off, output is black and white only."
-                  />
-
-                  <SliderField
-                    label="Color Levels"
-                    value={potraceOpts.posterizelevel}
-                    min={1} max={255} step={1}
-                    onChange={(v) => updatePotrace("posterizelevel", v)}
-                    tooltip="Number of color levels to use. Higher values capture more color detail but create a more complex (larger) SVG."
-                  />
-
-                  <SelectField
-                    label="Color Algorithm"
-                    value={potraceOpts.posterizationalgorithm}
-                    onChange={(e) => updatePotrace("posterizationalgorithm", Number(e.target.value))}
-                    tooltip="How colors are reduced. Simple divides colors evenly, Interpolation blends between levels for smoother gradients."
-                  >
-                    <option value={0}>Simple</option>
-                    <option value={1}>Interpolation</option>
-                  </SelectField>
-                </>
-              )}
+              <SelectField
+                label="Color Algorithm"
+                value={potraceOpts.posterizationalgorithm}
+                onChange={(e) =>
+                  updatePotrace(
+                    "posterizationalgorithm",
+                    Number(e.target.value),
+                  )
+                }
+                tooltip="How colors are reduced. Simple divides colors evenly, Interpolation blends between levels for smoother gradients."
+              >
+                <option value={0}>Simple</option>
+                <option value={1}>Interpolation</option>
+              </SelectField>
             </div>
 
             {/* Convert button */}
@@ -708,7 +737,13 @@ export default function ImageToSvgTool() {
               disabled={isConverting}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-accent-purple px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-accent-purple/80 hover:shadow-[0_0_24px_rgba(168,85,247,0.25)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -724,9 +759,12 @@ export default function ImageToSvgTool() {
         {isConverting && (
           <div className="rounded-xl border border-border-card bg-bg-card p-5">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-medium text-text-secondary">Converting...</span>
+              <span className="text-xs font-medium text-text-secondary">
+                Converting...
+              </span>
               <span className="font-mono text-xs text-text-muted">
-                {Math.min(progress.fileIndex + 1, progress.total)}/{progress.total}
+                {Math.min(progress.fileIndex + 1, progress.total)}/
+                {progress.total}
               </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-bg-secondary">
@@ -739,101 +777,150 @@ export default function ImageToSvgTool() {
         )}
 
         {/* Results */}
-        {hasResults && (() => {
-          const successCount = convertedResults.filter((r) => !r.error).length;
-          const failCount = convertedResults.length - successCount;
+        {hasResults &&
+          (() => {
+            const successCount = convertedResults.filter(
+              (r) => !r.error,
+            ).length;
+            const failCount = convertedResults.length - successCount;
 
-          return (
-          <div className="rounded-xl border border-border-card bg-bg-card p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h3 className="font-display text-sm font-semibold text-accent-green">Conversion Complete</h3>
-                {failCount > 0 && (
-                  <p className="text-[10px] text-accent-red mt-0.5">
-                    {failCount} file{failCount > 1 ? "s" : ""} failed
-                  </p>
-                )}
-              </div>
-              {successCount > 0 && (
-                <button
-                  type="button"
-                  onClick={downloadAll}
-                  disabled={isZipping}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-accent-green/30 bg-accent-green/10 px-3 py-1.5 text-xs font-medium text-accent-green transition-all hover:bg-accent-green/20 disabled:pointer-events-none disabled:opacity-50"
-                >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
-                    />
-                  </svg>
-                  {isZipping ? "Zipping..." : successCount > 1 ? "Download ZIP" : "Download"}
-                </button>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              {convertedResults.map((result, index) => {
-                const originalSize = selectedFiles[index]?.size ?? 0;
-                const outputSize = result.buffer.byteLength;
-                const failed = !!result.error;
-
-                return (
-                  <div
-                    key={`${result.name}-${outputSize}-${index}`}
-                    className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
-                      failed
-                        ? previewIndex === index
-                          ? "border-accent-red/30 bg-accent-red/5"
-                          : "border-accent-red/20 bg-accent-red/5 hover:bg-accent-red/10"
-                        : previewIndex === index
-                          ? "border-accent-purple/30 bg-accent-purple/5"
-                          : "border-accent-green/20 bg-accent-green/5 hover:bg-accent-green/10"
-                    }`}
-                    onClick={() => setPreviewIndex(index)}
-                  >
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${
-                      failed ? "bg-accent-red/10" : "bg-accent-green/10"
-                    }`}>
-                      {failed ? (
-                        <svg className="h-4 w-4 text-accent-red" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      ) : (
-                        <svg className="h-4 w-4 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium text-text-primary">{result.name}</p>
-                      {failed ? (
-                        <p className="text-[10px] text-accent-red truncate" title={result.error}>Failed</p>
-                      ) : (
-                        <p className="text-[10px] text-text-muted">
-                          {formatSize(originalSize)}
-                          <span className="mx-1 text-text-muted/60">&rarr;</span>
-                          {formatSize(outputSize)}
-                        </p>
-                      )}
-                    </div>
-                    {!failed && (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); downloadFile(result); }}
-                        className="shrink-0 rounded-md border border-accent-green/30 bg-accent-green/10 px-2 py-1 text-[10px] font-medium text-accent-green transition-colors hover:bg-accent-green/20"
-                      >
-                        Save
-                      </button>
+            return (
+              <div className="rounded-xl border border-border-card bg-bg-card p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-display text-sm font-semibold text-accent-green">
+                      Conversion Complete
+                    </h3>
+                    {failCount > 0 && (
+                      <p className="text-[10px] text-accent-red mt-0.5">
+                        {failCount} file{failCount > 1 ? "s" : ""} failed
+                      </p>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          </div>
-          );
-        })()}
+                  {successCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={downloadAll}
+                      disabled={isZipping}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-accent-green/30 bg-accent-green/10 px-3 py-1.5 text-xs font-medium text-accent-green transition-all hover:bg-accent-green/20 disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      <svg
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                        />
+                      </svg>
+                      {isZipping
+                        ? "Zipping..."
+                        : successCount > 1
+                          ? "Download ZIP"
+                          : "Download"}
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  {convertedResults.map((result, index) => {
+                    const originalSize = selectedFiles[index]?.size ?? 0;
+                    const outputSize = result.buffer.byteLength;
+                    const failed = !!result.error;
+
+                    return (
+                      <div
+                        key={`${result.name}-${outputSize}-${index}`}
+                        className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
+                          failed
+                            ? previewIndex === index
+                              ? "border-accent-red/30 bg-accent-red/5"
+                              : "border-accent-red/20 bg-accent-red/5 hover:bg-accent-red/10"
+                            : previewIndex === index
+                              ? "border-accent-purple/30 bg-accent-purple/5"
+                              : "border-accent-green/20 bg-accent-green/5 hover:bg-accent-green/10"
+                        }`}
+                        onClick={() => setPreviewIndex(index)}
+                      >
+                        <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${
+                            failed ? "bg-accent-red/10" : "bg-accent-green/10"
+                          }`}
+                        >
+                          {failed ? (
+                            <svg
+                              className="h-4 w-4 text-accent-red"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          ) : (
+                            <svg
+                              className="h-4 w-4 text-accent-green"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M4.5 12.75l6 6 9-13.5"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium text-text-primary">
+                            {result.name}
+                          </p>
+                          {failed ? (
+                            <p
+                              className="text-[10px] text-accent-red truncate"
+                              title={result.error}
+                            >
+                              Failed
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-text-muted">
+                              {formatSize(originalSize)}
+                              <span className="mx-1 text-text-muted/60">
+                                &rarr;
+                              </span>
+                              {formatSize(outputSize)}
+                            </p>
+                          )}
+                        </div>
+                        {!failed && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              downloadFile(result);
+                            }}
+                            className="shrink-0 rounded-md border border-accent-green/30 bg-accent-green/10 px-2 py-1 text-[10px] font-medium text-accent-green transition-colors hover:bg-accent-green/20"
+                          >
+                            Save
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
       </div>
     </div>
   );
@@ -851,7 +938,11 @@ function InfoTooltip({ text }: { text: string }) {
         stroke="currentColor"
         strokeWidth="2"
       >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"
+        />
       </svg>
       <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 w-48 -translate-x-1/2 rounded-lg border border-border-card bg-bg-card px-2.5 py-1.5 text-[10px] leading-relaxed text-text-secondary opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
         {text}
@@ -887,7 +978,8 @@ function SliderField({
           {tooltip && <InfoTooltip text={tooltip} />}
         </span>
         <span className="font-mono text-text-muted">
-          {step < 1 ? value.toFixed(step < 0.1 ? 2 : 1) : value}{unit}
+          {step < 1 ? value.toFixed(step < 0.1 ? 2 : 1) : value}
+          {unit}
         </span>
       </label>
       <input
@@ -936,7 +1028,11 @@ function CheckboxField({
           stroke="currentColor"
           strokeWidth="3"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4.5 12.75l6 6 9-13.5"
+          />
         </svg>
       </div>
       <span className="flex items-center text-xs text-text-secondary">

@@ -38,7 +38,6 @@
     "tailwindcss": "^4.2.1",
     "turndown": "^7.2.2",
     "turndown-plugin-gfm": "^1.0.2",
-    "vectortracer": "^0.1.2",
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.6.0"
   },
