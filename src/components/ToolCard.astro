@@ -12,6 +12,7 @@ import {
   FileText,
   KeyRound,
   FileCode,
+  Sparkles,
 } from "@lucide/astro";
 
 interface Props {
@@ -25,7 +26,7 @@ interface Props {
 const { title, description, icon, accentColor, href = "#" } = Astro.props;
 
 const iconMap: Record<string, any> = {
-  Image, Video, FileType, ShieldCheck, Route, Eye, Code, ScanSearch, FileText, KeyRound, FileCode,
+  Image, Video, FileType, ShieldCheck, Route, Eye, Code, ScanSearch, FileText, KeyRound, FileCode, Sparkles,
 };
 const Icon = iconMap[icon];
 
