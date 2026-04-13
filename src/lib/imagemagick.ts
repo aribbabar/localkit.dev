@@ -1,4 +1,11 @@
-import { ImageMagick, Magick, MagickFormat, MagickGeometry, initializeImageMagick, type IMagickImage } from "@imagemagick/magick-wasm";
+import {
+  ImageMagick,
+  Magick,
+  MagickFormat,
+  MagickGeometry,
+  initializeImageMagick,
+  type IMagickImage,
+} from "@imagemagick/magick-wasm";
 import wasmUrl from "@imagemagick/magick-wasm/magick.wasm?url";
 
 export interface ConvertOptions {
@@ -21,7 +28,6 @@ export interface ImageInfo {
   fileSize: number;
   mimeType: string;
   sourceFormat: string | null;
-  metadataBytes: number;
 }
 
 const FORMAT_MAP = {
@@ -62,19 +68,6 @@ const MIME_MAP: Record<SupportedExt, string> = {
 
 let initPromise: Promise<void> | null = null;
 let writableFormats: Set<MagickFormat> | null = null;
-const PATCH_SAMPLE_FORMATS = new Set(["jpg", "heic", "heif", "psd"]);
-const METADATA_FORMATS = new Set(["jpg", "png", "tiff", "heic", "heif", "psd"]);
-const SAMPLE_PATCH_EDGE = 384;
-const SAMPLE_THUMBNAIL_EDGE = 512;
-const SMALL_IMAGE_EXACT_PIXELS = 512 * 512;
-const THUMBNAIL_SCALE_BIAS: Partial<Record<SupportedExt, number>> = {
-  png: 1.12,
-  gif: 1.08,
-  ico: 1.12,
-  pcx: 1.08,
-  tiff: 1.04,
-  hdr: 1.02,
-};
 
 async function ensureInitialized() {
   if (!initPromise) {
@@ -93,7 +86,11 @@ async function ensureInitialized() {
 
 function getWritableFormats(): Set<MagickFormat> {
   if (!writableFormats) {
-    writableFormats = new Set(Magick.supportedFormats.filter((info) => info.supportsWriting).map((info) => info.format));
+    writableFormats = new Set(
+      Magick.supportedFormats
+        .filter((info) => info.supportsWriting)
+        .map((info) => info.format),
+    );
   }
 
   return writableFormats;
@@ -104,14 +101,20 @@ function formatLabel(ext: string): string {
 }
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  return bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ) as ArrayBuffer;
 }
 
 function clampQuality(value: number): number {
   return Math.min(100, Math.max(1, Math.round(value)));
 }
 
-function writeImageBytes(image: IMagickImage, format: (typeof FORMAT_MAP)[SupportedExt]): Uint8Array {
+function writeImageBytes(
+  image: IMagickImage,
+  format: (typeof FORMAT_MAP)[SupportedExt],
+): Uint8Array {
   let outputBytes: Uint8Array | null = null;
 
   image.write(format, (data) => {
@@ -147,127 +150,16 @@ function getStringByteLength(value: string | null | undefined): number {
   return new TextEncoder().encode(value).byteLength;
 }
 
-function getMetadataBytes(image: IMagickImage): number {
-  let total = getStringByteLength(image.comment);
-
-  for (const name of image.attributeNames) {
-    total += getStringByteLength(name);
-    total += getStringByteLength(image.getAttribute(name));
-  }
-
-  for (const name of image.profileNames) {
-    total += image.getProfile(name)?.data.byteLength ?? 0;
-  }
-
-  return total;
-}
-
-function getEstimatedMetadataBytes(info: ImageInfo, targetFormat: string, options: ConvertOptions): number {
-  if (options.strip || info.metadataBytes <= 0 || !METADATA_FORMATS.has(targetFormat)) {
-    return 0;
-  }
-
-  return Math.min(info.fileSize, info.metadataBytes + 128);
-}
-
-function getExactRawEstimate(ext: string, width: number, height: number, hasAlpha: boolean): number | null {
-  switch (ext) {
-    case "bmp": {
-      const bytesPerPixel = hasAlpha ? 4 : 3;
-      const rowStride = Math.ceil((width * bytesPerPixel) / 4) * 4;
-      return 54 + rowStride * height;
-    }
-
-    case "ppm":
-      return getStringByteLength(`P6\n${width} ${height}\n255\n`) + width * height * 3;
-
-    case "pgm":
-      return getStringByteLength(`P5\n${width} ${height}\n255\n`) + width * height;
-
-    case "tga":
-      return 18 + width * height * (hasAlpha ? 4 : 3);
-
-    default:
-      return null;
-  }
-}
-
-function getPatchGeometries(width: number, height: number, patchWidth: number, patchHeight: number): MagickGeometry[] {
-  const maxX = Math.max(0, width - patchWidth);
-  const maxY = Math.max(0, height - patchHeight);
-  const points = [
-    [0, 0],
-    [Math.round(maxX / 2), Math.round(maxY / 2)],
-    [maxX, maxY],
-  ] as const;
-  const seen = new Set<string>();
-
-  return points.flatMap(([x, y]) => {
-    const key = `${x}:${y}`;
-    if (seen.has(key)) {
-      return [];
-    }
-
-    seen.add(key);
-    return [new MagickGeometry(x, y, patchWidth, patchHeight)];
-  });
-}
-
-function estimatePatchEncodedSize(
-  image: IMagickImage,
-  format: (typeof FORMAT_MAP)[SupportedExt],
-  metadataBytes: number
-): number {
-  const patchWidth = Math.min(image.width, SAMPLE_PATCH_EDGE);
-  const patchHeight = Math.min(image.height, SAMPLE_PATCH_EDGE);
-  const geometries = getPatchGeometries(image.width, image.height, patchWidth, patchHeight);
-  const patchPixels = patchWidth * patchHeight;
-  const encodedPerPixel = geometries.map((geometry) =>
-    image.cloneArea(geometry, (patch) => Math.max(0, writeImageBytes(patch, format).byteLength - metadataBytes) / patchPixels)
-  );
-  const averagePerPixel = encodedPerPixel.reduce((sum, value) => sum + value, 0) / encodedPerPixel.length;
-
-  return Math.round(averagePerPixel * image.width * image.height + metadataBytes);
-}
-
-function estimateThumbnailEncodedSize(
-  image: IMagickImage,
-  ext: SupportedExt,
-  format: (typeof FORMAT_MAP)[SupportedExt],
-  metadataBytes: number
-): number {
-  const maxDimension = Math.max(image.width, image.height);
-  const scale = maxDimension > SAMPLE_THUMBNAIL_EDGE ? SAMPLE_THUMBNAIL_EDGE / maxDimension : 1;
-  const sampleWidth = Math.max(1, Math.round(image.width * scale));
-  const sampleHeight = Math.max(1, Math.round(image.height * scale));
-  const samplePixels = sampleWidth * sampleHeight;
-
-  const sampleBytes = image.clone((sample) => {
-    if (scale < 1) {
-      sample.thumbnail(sampleWidth, sampleHeight);
-    }
-
-    return writeImageBytes(sample, format).byteLength;
-  });
-
-  if (scale === 1) {
-    return sampleBytes;
-  }
-
-  const variableBytes = Math.max(0, sampleBytes - metadataBytes);
-  const scaleRatio = (image.width * image.height) / samplePixels;
-  const scaledVariableBytes = variableBytes * scaleRatio * (THUMBNAIL_SCALE_BIAS[ext] ?? 1);
-
-  return Math.round(scaledVariableBytes + metadataBytes);
-}
-
 function changeExtension(filename: string, newExt: string): string {
   const dot = filename.lastIndexOf(".");
   const base = dot > 0 ? filename.substring(0, dot) : filename;
   return `${base}.${newExt}`;
 }
 
-function resolveTargetFormat(targetFormat: string): { ext: SupportedExt; format: (typeof FORMAT_MAP)[SupportedExt] } {
+function resolveTargetFormat(targetFormat: string): {
+  ext: SupportedExt;
+  format: (typeof FORMAT_MAP)[SupportedExt];
+} {
   const ext = targetFormat.toLowerCase() as SupportedExt;
   const format = FORMAT_MAP[ext];
   if (!format) {
@@ -276,7 +168,7 @@ function resolveTargetFormat(targetFormat: string): { ext: SupportedExt; format:
   if (!getWritableFormats().has(format)) {
     throw new Error(
       `Output format "${formatLabel(ext)}" is not available in this browser build. ` +
-        "This ImageMagick build does not include an encoder for it."
+        "This ImageMagick build does not include an encoder for it.",
     );
   }
 
@@ -286,7 +178,7 @@ function resolveTargetFormat(targetFormat: string): { ext: SupportedExt; format:
 export async function convertImage(
   file: File,
   targetFormat: string,
-  options: ConvertOptions = {}
+  options: ConvertOptions = {},
 ): Promise<ConvertedFile> {
   await ensureInitialized();
 
@@ -300,7 +192,9 @@ export async function convertImage(
       outputBytes = writeImageBytes(image, format);
     });
   } catch (error) {
-    throw new Error(`Failed to convert "${file.name}": ${(error as Error).message}`);
+    throw new Error(
+      `Failed to convert "${file.name}": ${(error as Error).message}`,
+    );
   }
 
   if (!outputBytes) {
@@ -319,7 +213,7 @@ export async function convertBatch(
   files: File[],
   targetFormat: string,
   options: ConvertOptions = {},
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (done: number, total: number) => void,
 ): Promise<ConvertedFile[]> {
   const results: ConvertedFile[] = [];
   for (let i = 0; i < files.length; i++) {
@@ -344,7 +238,6 @@ export async function getImageInfo(file: File): Promise<ImageInfo> {
       fileSize: file.size,
       mimeType: file.type,
       sourceFormat: image.format?.toString().toLowerCase() ?? null,
-      metadataBytes: getMetadataBytes(image),
     };
   });
 
@@ -355,49 +248,23 @@ export async function getImageInfo(file: File): Promise<ImageInfo> {
 }
 
 /**
- * Estimate output file size in bytes by encoding a representative sample of the image.
- * Small outputs are encoded at full size; larger ones use cropped or thumbnail samples.
+ * @deprecated This function was used for file size estimation, which has been removed.
+ * It will always return null. Kept for backwards compatibility if referenced elsewhere.
  */
 export async function estimateOutputSize(
-  file: File,
-  info: ImageInfo,
-  targetFormat: string,
-  options: ConvertOptions = {}
+  _file: File,
+  _info: ImageInfo,
+  _targetFormat: string,
+  _options: ConvertOptions = {},
 ): Promise<number | null> {
-  await ensureInitialized();
-
-  try {
-    const { ext, format } = resolveTargetFormat(targetFormat);
-    const inputBytes = new Uint8Array(await file.arrayBuffer());
-    const metadataBytes = getEstimatedMetadataBytes(info, ext, options);
-
-    return ImageMagick.read(inputBytes, (image) => {
-      applyConversionOptions(image, options);
-
-      const exactRawEstimate = getExactRawEstimate(ext, image.width, image.height, image.hasAlpha);
-      if (exactRawEstimate !== null) {
-        return exactRawEstimate;
-      }
-
-      const pixels = image.width * image.height;
-      if (pixels <= SMALL_IMAGE_EXACT_PIXELS) {
-        return writeImageBytes(image, format).byteLength;
-      }
-
-      if (PATCH_SAMPLE_FORMATS.has(ext)) {
-        return estimatePatchEncodedSize(image, format, metadataBytes);
-      }
-
-      return estimateThumbnailEncodedSize(image, ext, format, metadataBytes);
-    });
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 export async function getAvailableOutputFormats() {
   await ensureInitialized();
-  return SUPPORTED_FORMATS.filter((format) => getWritableFormats().has(FORMAT_MAP[format.ext]));
+  return SUPPORTED_FORMATS.filter((format) =>
+    getWritableFormats().has(FORMAT_MAP[format.ext]),
+  );
 }
 
 export const SUPPORTED_FORMATS = [
@@ -417,4 +284,5 @@ export const SUPPORTED_FORMATS = [
   { ext: "heif", label: "HEIF", mime: MIME_MAP.heif },
 ] as const;
 
-export const ACCEPTED_INPUT_EXTENSIONS = ".heic,.heif,.xcf," + SUPPORTED_FORMATS.map((f) => `.${f.ext}`).join(",");
+export const ACCEPTED_INPUT_EXTENSIONS =
+  ".heic,.heif,.xcf," + SUPPORTED_FORMATS.map((f) => `.${f.ext}`).join(",");
