@@ -85,7 +85,7 @@ describe("image to svg conversion", () => {
     vi.unstubAllGlobals();
   });
 
-  it("converts illustration fixtures with potrace only and reports progress", async () => {
+  it("converts illustration fixtures with potrace and reports progress", async () => {
     const files = [
       createFixtureFile("cute-cartoon-puppy-dog-illustration-free-vector.jpg"),
       createFixtureFile(

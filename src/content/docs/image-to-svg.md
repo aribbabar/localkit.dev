@@ -4,7 +4,7 @@ description: "How the Image to SVG tool works: convert raster images into SVGs w
 tool: "image-to-svg"
 accent: "purple"
 icon: "Image"
-lastUpdated: 2026-04-03
+lastUpdated: 2026-04-18
 order: 3
 ---
 
@@ -17,6 +17,7 @@ This tool works especially well for icons, logos, stickers, and illustrations wi
 ### Key Features
 
 * **Batch conversion**: Convert multiple images in one run
+* **Built-in presets**: Start from tuned Potrace profiles for logos, illustrations, and photos
 * **Potrace controls**: Adjust noise filtering, corner smoothness, curve optimization, and tracing behavior
 * **Color extraction**: Keep color regions in the SVG, or turn it off for black and white output
 * **Preview modes**: Switch between SVG, original image, or a side by side comparison
@@ -25,9 +26,11 @@ This tool works especially well for icons, logos, stickers, and illustrations wi
 
 ## Architecture
 
-The tool uses **Potrace**, compiled to WebAssembly through `esm-potrace-wasm`. The browser loads the tracing engine only when you actually start a conversion, which keeps the initial page load lighter.
+The tool uses **Potrace**, compiled to WebAssembly through `esm-potrace-wasm`.
 
-Before tracing starts, each image is decoded into `ImageData`. For larger inputs, the tool scales the image down before sending it into Potrace. This keeps memory usage under control and avoids pushing the WASM runtime past its heap limits.
+The Potrace module loads lazily when you actually start a conversion, which keeps the initial page load lighter.
+
+Before tracing starts, each image is decoded in the browser and drawn into a canvas. For larger inputs, the tool scales the image down before sending it into Potrace. This keeps memory usage under control and avoids pushing the WASM runtime past its heap limits.
 
 ### Processing Pipeline
 
@@ -46,10 +49,10 @@ src/components/image-to-svg/
   ImageToSvgTool.tsx                    → Main React component
   ImageToSvgTool.module.css             → Slider styling
   preferences.ts                        → Saved Potrace settings
-src/lib/image-to-svg.ts                 → WASM singleton, image extraction, batch conversion
+src/lib/image-to-svg.ts                 → Potrace loader, image extraction, batch conversion
 ```
 
-The `image-to-svg.ts` library exposes the Potrace loader and the batch conversion pipeline. The Potrace module is initialized once per session and then reused for later conversions.
+The `image-to-svg.ts` library exposes the Potrace loader and the batch conversion pipeline. The WASM module is initialized once per session and then reused for later conversions.
 
 ## Privacy & Security
 
@@ -87,4 +90,4 @@ Simple artwork usually gives the best results. Logos, flat illustrations, icons,
 
 ### Why does the tool resize large images before tracing?
 
-That is a practical limit to keep the Potrace WASM runtime stable inside the browser. Extremely large bitmaps can use a lot of memory, so the tool scales them down before tracing. This keeps conversions more reliable, especially on lower-memory devices.
+That is a practical limit to keep the browser-side Potrace runtime stable. Extremely large bitmaps can use a lot of memory, so the tool scales them down before tracing. This keeps conversions more reliable, especially on lower-memory devices.

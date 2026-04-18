@@ -1,14 +1,18 @@
-// ── Types ────────────────────────────────────────────────────────────────
+export type PotracePresetId =
+  | "balanced"
+  | "logo"
+  | "illustration"
+  | "photo";
 
 export interface PotraceOptions {
-  turdsize: number; // 0-100, default 2
-  turnpolicy: number; // 0-6, default 4 (MINORITY)
-  alphamax: number; // 0-1.34, default 1
-  opticurve: number; // 0|1, default 1
-  opttolerance: number; // 0-1, default 0.2
-  extractcolors: boolean; // default true
-  posterizelevel: number; // 1-255, default 2
-  posterizationalgorithm: number; // 0|1, default 0
+  turdsize: number;
+  turnpolicy: number;
+  alphamax: number;
+  opticurve: number;
+  opttolerance: number;
+  extractcolors: boolean;
+  posterizelevel: number;
+  posterizationalgorithm: number;
 }
 
 export interface ConversionOptions {
@@ -29,20 +33,75 @@ export type ProgressCallback = (
   totalFiles: number,
 ) => void;
 
-// ── Defaults ─────────────────────────────────────────────────────────────
-
-export const DEFAULT_POTRACE_OPTIONS: PotraceOptions = {
-  turdsize: 2,
-  turnpolicy: 4,
-  alphamax: 1,
-  opticurve: 1,
-  opttolerance: 0.2,
-  extractcolors: true,
-  posterizelevel: 2,
-  posterizationalgorithm: 0,
+export const POTRACE_PRESETS: Record<
+  PotracePresetId,
+  {
+    label: string;
+    description: string;
+    options: PotraceOptions;
+  }
+> = {
+  balanced: {
+    label: "Balanced",
+    description: "Closer visual match without making the SVG too noisy.",
+    options: {
+      turdsize: 1,
+      turnpolicy: 4,
+      alphamax: 0.85,
+      opticurve: 1,
+      opttolerance: 0.1,
+      extractcolors: true,
+      posterizelevel: 5,
+      posterizationalgorithm: 1,
+    },
+  },
+  logo: {
+    label: "Logo",
+    description: "Simpler, cleaner output for marks, icons, and flat shapes.",
+    options: {
+      turdsize: 6,
+      turnpolicy: 4,
+      alphamax: 0.35,
+      opticurve: 1,
+      opttolerance: 0.2,
+      extractcolors: false,
+      posterizelevel: 2,
+      posterizationalgorithm: 0,
+    },
+  },
+  illustration: {
+    label: "Illustration",
+    description: "Preserves more color and contour detail in artwork.",
+    options: {
+      turdsize: 1,
+      turnpolicy: 4,
+      alphamax: 0.95,
+      opticurve: 1,
+      opttolerance: 0.08,
+      extractcolors: true,
+      posterizelevel: 7,
+      posterizationalgorithm: 1,
+    },
+  },
+  photo: {
+    label: "Photo",
+    description: "Higher detail tracing for textured or tonal images.",
+    options: {
+      turdsize: 0,
+      turnpolicy: 4,
+      alphamax: 1.1,
+      opticurve: 1,
+      opttolerance: 0.05,
+      extractcolors: true,
+      posterizelevel: 10,
+      posterizationalgorithm: 1,
+    },
+  },
 };
 
-// ── Engine singletons ────────────────────────────────────────────────────
+export const DEFAULT_POTRACE_OPTIONS: PotraceOptions = {
+  ...POTRACE_PRESETS.balanced.options,
+};
 
 let potraceModule: typeof import("esm-potrace-wasm") | null = null;
 let potraceInitialized = false;
@@ -58,36 +117,43 @@ async function getPotrace() {
   return potraceModule;
 }
 
-// ── ImageData extraction ─────────────────────────────────────────────────
-
 const POTRACE_MAX_DIM = 1024;
+
+async function loadBitmap(
+  file: File,
+  maxDim?: number,
+): Promise<{ bitmap: ImageBitmap; width: number; height: number }> {
+  let bitmap = await createImageBitmap(file);
+  let { width, height } = bitmap;
+
+  if (maxDim && (width > maxDim || height > maxDim)) {
+    const scale = Math.min(maxDim / width, maxDim / height);
+    const newWidth = Math.round(width * scale);
+    const newHeight = Math.round(height * scale);
+    const originalBitmap = bitmap;
+    bitmap = await createImageBitmap(file, {
+      resizeWidth: newWidth,
+      resizeHeight: newHeight,
+      resizeQuality: "high",
+    });
+    originalBitmap.close();
+    width = newWidth;
+    height = newHeight;
+  }
+
+  return { bitmap, width, height };
+}
 
 export async function extractImageData(
   file: File,
   maxDim?: number,
 ): Promise<ImageData> {
-  let bitmap = await createImageBitmap(file);
-  let { width, height } = bitmap;
-
-  // Downscale if needed to stay within WASM heap limits
-  if (maxDim && (width > maxDim || height > maxDim)) {
-    const scale = Math.min(maxDim / width, maxDim / height);
-    const newW = Math.round(width * scale);
-    const newH = Math.round(height * scale);
-    const old = bitmap;
-    bitmap = await createImageBitmap(file, {
-      resizeWidth: newW,
-      resizeHeight: newH,
-      resizeQuality: "high",
-    });
-    old.close();
-    width = newW;
-    height = newH;
-  }
+  const { bitmap, width, height } = await loadBitmap(file, maxDim);
 
   if (typeof OffscreenCanvas !== "undefined") {
     const canvas = new OffscreenCanvas(width, height);
-    const ctx = canvas.getContext("2d")!;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Failed to create offscreen canvas context");
     ctx.drawImage(bitmap, 0, 0);
     bitmap.close();
     return ctx.getImageData(0, 0, width, height);
@@ -96,13 +162,15 @@ export async function extractImageData(
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    throw new Error("Failed to create canvas context");
+  }
   ctx.drawImage(bitmap, 0, 0);
   bitmap.close();
   return ctx.getImageData(0, 0, width, height);
 }
-
-// ── Potrace conversion ──────────────────────────────────────────────────
 
 async function convertWithPotrace(
   file: File,
@@ -112,8 +180,6 @@ async function convertWithPotrace(
   const pt = await getPotrace();
   onProgress?.(0);
 
-  // Extract ImageData with downscaling to stay within WASM heap limits.
-  // Passing ImageData directly also bypasses potrace's internal canvas creation.
   const imageData = await extractImageData(file, POTRACE_MAX_DIM);
 
   const svg = await pt.potrace(imageData, {
@@ -131,8 +197,6 @@ async function convertWithPotrace(
 
   return svg;
 }
-
-// ── Batch conversion ─────────────────────────────────────────────────────
 
 function changeExtension(filename: string, ext: string): string {
   const dotIndex = filename.lastIndexOf(".");
@@ -165,13 +229,13 @@ export async function convertBatch(
         blob: new Blob([svgString], { type: "image/svg+xml" }),
         buffer,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       results.push({
         name,
         svgString: "",
         blob: new Blob([], { type: "image/svg+xml" }),
         buffer: new ArrayBuffer(0),
-        error: err?.message ?? String(err),
+        error: err instanceof Error ? err.message : String(err),
       });
     }
   }

@@ -41,14 +41,9 @@ describe("image to svg preferences", () => {
     });
   });
 
-  it("ignores legacy vtracer data and keeps potrace settings", () => {
+  it("normalizes potrace settings", () => {
     expect(
       sanitizeImageToSvgPreferences({
-        engine: "vtracer",
-        vtracer: {
-          mode: "polygon",
-          filterSpeckle: 64,
-        },
         potrace: {
           turdsize: 5,
           turnpolicy: 99,

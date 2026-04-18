@@ -5,22 +5,19 @@ import {
   type ChangeEvent,
   type DragEvent,
 } from "react";
-import type { SvgResult, PotraceOptions } from "../../lib/image-to-svg";
+import {
+  convertBatch,
+  POTRACE_PRESETS,
+  type PotraceOptions,
+  type PotracePresetId,
+  type SvgResult,
+} from "../../lib/image-to-svg";
 import {
   DEFAULT_IMAGE_TO_SVG_PREFERENCES,
   loadImageToSvgPreferences,
   saveImageToSvgPreferences,
 } from "./preferences";
 import styles from "./ImageToSvgTool.module.css";
-
-let imageToSvgLib: typeof import("../../lib/image-to-svg") | null = null;
-
-async function getLib() {
-  if (!imageToSvgLib) {
-    imageToSvgLib = await import("../../lib/image-to-svg");
-  }
-  return imageToSvgLib;
-}
 
 const ACCEPTED_INPUTS =
   "image/png,image/jpeg,image/gif,image/bmp,image/webp,image/tiff";
@@ -60,6 +57,17 @@ const TURN_POLICY_LABELS = [
   "Random",
 ];
 
+const POTRACE_PRESET_IDS = Object.keys(POTRACE_PRESETS) as PotracePresetId[];
+
+function matchesPreset<T extends Record<string, string | number | boolean>>(
+  options: T,
+  presetOptions: T,
+) {
+  return Object.keys(presetOptions).every(
+    (key) => options[key as keyof T] === presetOptions[key as keyof T],
+  );
+}
+
 export default function ImageToSvgTool() {
   const savedPreferences = useMemo(loadImageToSvgPreferences, []);
 
@@ -92,10 +100,16 @@ export default function ImageToSvgTool() {
   const hasFiles = selectedFiles.length > 0;
   const hasResults = convertedResults.length > 0;
   const currentResult = hasResults ? convertedResults[previewIndex] : null;
+  const currentPotracePreset =
+    POTRACE_PRESET_IDS.find((presetId) =>
+      matchesPreset(potraceOpts, POTRACE_PRESETS[presetId].options),
+    ) ?? "custom";
 
   // Save preferences
   useEffect(() => {
-    saveImageToSvgPreferences({ potrace: potraceOpts });
+    saveImageToSvgPreferences({
+      potrace: potraceOpts,
+    });
   }, [potraceOpts]);
 
   // Build preview blob URLs
@@ -183,7 +197,6 @@ export default function ImageToSvgTool() {
     setConvertedResults([]);
 
     try {
-      const { convertBatch } = await getLib();
       const results = await convertBatch(
         selectedFiles,
         { potrace: potraceOpts },
@@ -249,6 +262,10 @@ export default function ImageToSvgTool() {
     value: PotraceOptions[K],
   ) {
     setPotraceOpts((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function applyPotracePreset(presetId: PotracePresetId) {
+    setPotraceOpts({ ...POTRACE_PRESETS[presetId].options });
   }
 
   function resetSettings() {
@@ -625,6 +642,32 @@ export default function ImageToSvgTool() {
             </div>
 
             <div className="mb-4">
+              <SelectField
+                label="Preset"
+                value={currentPotracePreset}
+                onChange={(e) => {
+                  if (e.target.value === "custom") return;
+                  applyPotracePreset(e.target.value as PotracePresetId);
+                }}
+                tooltip="Apply a tuned starting point for common image types. Once you adjust individual controls, the preset switches to Custom."
+              >
+                {POTRACE_PRESET_IDS.map((presetId) => ({
+                  value: presetId,
+                  label: POTRACE_PRESETS[presetId].label,
+                })).map((preset) => (
+                  <option key={preset.value} value={preset.value}>
+                    {preset.label}
+                  </option>
+                ))}
+                <option value="custom">Custom</option>
+              </SelectField>
+
+              <p className="mt-2 text-[10px] leading-relaxed text-text-muted">
+                {currentPotracePreset === "custom"
+                  ? "Custom Potrace tuning. Choose a preset to quickly reapply a starting profile."
+                  : POTRACE_PRESETS[currentPotracePreset].description}
+              </p>
+
               <p className="flex items-center gap-1 text-[10px] text-text-muted">
                 <svg
                   className="h-3 w-3 shrink-0"
@@ -639,95 +682,97 @@ export default function ImageToSvgTool() {
                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                Potrace is the only tracing engine for this tool and is licensed
-                under GPL-v2.0.
+                Potrace is GPL-v2.0 and works best when you want tighter,
+                simpler SVG output.
               </p>
             </div>
 
             <div className="space-y-3">
-              <SliderField
-                label="Noise Filter"
-                value={potraceOpts.turdsize}
-                min={0}
-                max={100}
-                step={1}
-                onChange={(v) => updatePotrace("turdsize", v)}
-                tooltip="Removes small speckles and noise smaller than this area (in pixels). Higher values give a cleaner result but may remove small details."
-              />
+              <>
+                <SliderField
+                  label="Noise Filter"
+                  value={potraceOpts.turdsize}
+                  min={0}
+                  max={100}
+                  step={1}
+                  onChange={(v) => updatePotrace("turdsize", v)}
+                  tooltip="Removes small speckles and noise smaller than this area (in pixels). Higher values give a cleaner result but may remove small details."
+                />
 
-              <SelectField
-                label="Turn Policy"
-                value={potraceOpts.turnpolicy}
-                onChange={(e) =>
-                  updatePotrace("turnpolicy", Number(e.target.value))
-                }
-                tooltip="How to resolve ambiguities when tracing edges. Minority and Majority usually give the best results for most images."
-              >
-                {TURN_POLICY_LABELS.map((label, i) => (
-                  <option key={i} value={i}>
-                    {label}
-                  </option>
-                ))}
-              </SelectField>
+                <SelectField
+                  label="Turn Policy"
+                  value={potraceOpts.turnpolicy}
+                  onChange={(e) =>
+                    updatePotrace("turnpolicy", Number(e.target.value))
+                  }
+                  tooltip="How to resolve ambiguities when tracing edges. Minority and Majority usually give the best results for most images."
+                >
+                  {TURN_POLICY_LABELS.map((label, i) => (
+                    <option key={i} value={i}>
+                      {label}
+                    </option>
+                  ))}
+                </SelectField>
 
-              <SliderField
-                label="Corner Smoothness"
-                value={potraceOpts.alphamax}
-                min={0}
-                max={1.34}
-                step={0.01}
-                onChange={(v) => updatePotrace("alphamax", v)}
-                tooltip="Controls how smooth corners are. 0 produces only sharp corners, 1.34 creates the smoothest possible curves."
-              />
+                <SliderField
+                  label="Corner Smoothness"
+                  value={potraceOpts.alphamax}
+                  min={0}
+                  max={1.34}
+                  step={0.01}
+                  onChange={(v) => updatePotrace("alphamax", v)}
+                  tooltip="Controls how smooth corners are. 0 produces only sharp corners, 1.34 creates the smoothest possible curves."
+                />
 
-              <CheckboxField
-                label="Optimize curves"
-                checked={potraceOpts.opticurve === 1}
-                onChange={(v) => updatePotrace("opticurve", v ? 1 : 0)}
-                tooltip="Joins adjacent curves to create a simpler, smaller SVG file. Usually produces better results when enabled."
-              />
+                <CheckboxField
+                  label="Optimize curves"
+                  checked={potraceOpts.opticurve === 1}
+                  onChange={(v) => updatePotrace("opticurve", v ? 1 : 0)}
+                  tooltip="Joins adjacent curves to create a simpler, smaller SVG file. Usually produces better results when enabled."
+                />
 
-              <SliderField
-                label="Optimization Tolerance"
-                value={potraceOpts.opttolerance}
-                min={0}
-                max={1}
-                step={0.01}
-                onChange={(v) => updatePotrace("opttolerance", v)}
-                tooltip="How much curves can deviate when being optimized. Higher values produce simpler output but less accurately match the original."
-              />
+                <SliderField
+                  label="Optimization Tolerance"
+                  value={potraceOpts.opttolerance}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onChange={(v) => updatePotrace("opttolerance", v)}
+                  tooltip="How much curves can deviate when being optimized. Higher values produce simpler output but less accurately match the original."
+                />
 
-              <CheckboxField
-                label="Extract colors"
-                checked={potraceOpts.extractcolors}
-                onChange={(v) => updatePotrace("extractcolors", v)}
-                tooltip="Detects and preserves colors from the original image. When off, output is black and white only."
-              />
+                <CheckboxField
+                  label="Extract colors"
+                  checked={potraceOpts.extractcolors}
+                  onChange={(v) => updatePotrace("extractcolors", v)}
+                  tooltip="Detects and preserves colors from the original image. When off, output is black and white only."
+                />
 
-              <SliderField
-                label="Color Levels"
-                value={potraceOpts.posterizelevel}
-                min={1}
-                max={255}
-                step={1}
-                onChange={(v) => updatePotrace("posterizelevel", v)}
-                tooltip="Number of color levels to use. Higher values capture more color detail but create a more complex (larger) SVG."
-              />
+                <SliderField
+                  label="Color Levels"
+                  value={potraceOpts.posterizelevel}
+                  min={1}
+                  max={255}
+                  step={1}
+                  onChange={(v) => updatePotrace("posterizelevel", v)}
+                  tooltip="Number of color levels to use. Higher values capture more color detail but create a more complex (larger) SVG."
+                />
 
-              <SelectField
-                label="Color Algorithm"
-                value={potraceOpts.posterizationalgorithm}
-                onChange={(e) =>
-                  updatePotrace(
-                    "posterizationalgorithm",
-                    Number(e.target.value),
-                  )
-                }
-                tooltip="How colors are reduced. Simple divides colors evenly, Interpolation blends between levels for smoother gradients."
-              >
-                <option value={0}>Simple</option>
-                <option value={1}>Interpolation</option>
-              </SelectField>
+                <SelectField
+                  label="Color Algorithm"
+                  value={potraceOpts.posterizationalgorithm}
+                  onChange={(e) =>
+                    updatePotrace(
+                      "posterizationalgorithm",
+                      Number(e.target.value),
+                    )
+                  }
+                  tooltip="How colors are reduced. Simple divides colors evenly, Interpolation blends between levels for smoother gradients."
+                >
+                  <option value={0}>Simple</option>
+                  <option value={1}>Interpolation</option>
+                </SelectField>
+              </>
             </div>
 
             {/* Convert button */}
@@ -750,7 +795,7 @@ export default function ImageToSvgTool() {
                   d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"
                 />
               </svg>
-              {isConverting ? "Converting..." : "Convert to SVG"}
+              {isConverting ? "Converting..." : "Convert with Potrace"}
             </button>
           </div>
         )}
