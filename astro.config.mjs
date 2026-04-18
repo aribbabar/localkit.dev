@@ -23,6 +23,7 @@ export default defineConfig({
         "@huggingface/transformers",
         "@wasm-fmt/clang-format",
         "esm-potrace-wasm",
+        "svgtidy",
       ],
     },
   },

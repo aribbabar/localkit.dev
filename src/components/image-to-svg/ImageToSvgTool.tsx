@@ -18,6 +18,7 @@ import {
   type PotracePresetId,
   type SvgResult,
 } from "../../lib/image-to-svg";
+import { optimizeSvgAsset } from "../../lib/svg-optimizer";
 import {
   DEFAULT_IMAGE_TO_SVG_PREFERENCES,
   loadImageToSvgPreferences,
@@ -302,11 +303,20 @@ export default function ImageToSvgTool() {
 
   // ── Download ─────────────────────────────────────────────────────────
 
-  function downloadFile(file: SvgResult) {
-    const url = URL.createObjectURL(file.blob);
+  async function buildDownloadAsset(file: SvgResult) {
+    try {
+      return await optimizeSvgAsset(file.name, file.svgString);
+    } catch {
+      return file;
+    }
+  }
+
+  async function downloadFile(file: SvgResult) {
+    const downloadAsset = await buildDownloadAsset(file);
+    const url = URL.createObjectURL(downloadAsset.blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = file.name;
+    a.download = downloadAsset.name;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -325,7 +335,8 @@ export default function ImageToSvgTool() {
       const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
       for (const file of successful) {
-        zip.file(file.name, file.buffer);
+        const downloadAsset = await buildDownloadAsset(file);
+        zip.file(downloadAsset.name, downloadAsset.buffer);
       }
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);

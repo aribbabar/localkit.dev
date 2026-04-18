@@ -23,6 +23,7 @@ This tool works especially well for icons, logos, stickers, and illustrations wi
 - **Live preview**: The selected image retraces automatically as you adjust settings
 - **Preview modes**: Switch between SVG, original image, or a side by side comparison
 - **Background modes**: Preview against light, dark, or checkerboard backgrounds
+- **Download cleanup**: Final SVG downloads are run through `svgtidy` automatically
 - **ZIP download**: Download all successful conversions in one archive
 
 ## Architecture
@@ -41,7 +42,8 @@ Before tracing starts, each image is decoded in the browser and drawn into a can
 4. **Live preview**: While you tune settings, the selected image is retraced from a reduced preview bitmap so changes show up quickly.
 5. **Vectorization**: Potrace traces the bitmap into SVG paths using the selected settings.
 6. **Preview generation**: The SVG string is wrapped as a Blob so the browser can preview it instantly.
-7. **Download**: Successful outputs are downloaded one by one, or packed into a ZIP with `jszip` when multiple files finish successfully.
+7. **Download cleanup**: When you save a result, the SVG is passed through `svgtidy` to remove redundant markup before download.
+8. **Download**: Successful outputs are downloaded one by one, or packed into a ZIP with `jszip` when multiple files finish successfully.
 
 ### Code Structure
 
@@ -52,9 +54,10 @@ src/components/image-to-svg/
   ImageToSvgTool.module.css             → Slider styling
   preferences.ts                        → Saved Potrace settings
 src/lib/image-to-svg.ts                 → Potrace loader, image extraction, batch conversion
+src/lib/svg-optimizer.ts                → Shared svgtidy download cleanup
 ```
 
-The `image-to-svg.ts` library exposes the Potrace loader and the batch conversion pipeline. The WASM module is initialized once per session and then reused for later conversions.
+The `image-to-svg.ts` library exposes the Potrace loader and the batch conversion pipeline. The WASM module is initialized once per session and then reused for later conversions. Final downloads are post-processed by the shared `svg-optimizer.ts` helper so exported SVG markup is cleaner than the raw Potrace output.
 
 ## Privacy & Security
 
@@ -63,6 +66,7 @@ All processing happens locally in your browser. Your images are never uploaded t
 ## Technical Details
 
 - **Tracing engine**: Potrace via WebAssembly
+- **Download post-processing**: svgtidy via WebAssembly
 - **Input formats**: PNG, JPG, GIF, BMP, WebP, TIFF
 - **Output format**: SVG
 - **Large image handling**: Final conversions may be resized to a maximum dimension of 1024px before tracing, while live preview uses a smaller bitmap for responsiveness

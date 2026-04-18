@@ -13,16 +13,109 @@ const accentColors: Record<string, string> = {
 };
 
 const tools = [
-  { slug: "image-converter", title: "Image Converter", description: "Batch convert images between PNG, JPG, GIF, BMP, TIFF, and more formats.", accent: "purple", category: "Image" },
-  { slug: "video-converter", title: "Video Converter", description: "Batch convert videos between MP4, WebM, AVI, MKV, MOV, and more using FFmpeg.", accent: "blue", category: "Video" },
-  { slug: "pdf-tools", title: "PDF Tools", description: "Merge, split, compress, extract pages, and convert PDFs to images or text.", accent: "red", category: "Document" },
-  { slug: "info-redactor", title: "Info Redactor", description: "Securely redact sensitive data from documents or images before sharing.", accent: "indigo", category: "Security" },
-  { slug: "path-converter", title: "Path Converter", description: "Convert file paths between forward slashes and backslashes instantly.", accent: "teal", category: "Tool" },
-  { slug: "svg-viewer", title: "SVG Viewer", description: "Preview SVG code with live rendering, animation playback, zoom, and background modes.", accent: "cyan", category: "Image" },
-  { slug: "code-formatter", title: "Code Formatter", description: "Format and beautify 25+ languages — JS, TS, HTML, CSS, C/C++, Java, C#, and more.", accent: "teal", category: "Tool" },
-  { slug: "image-metadata", title: "Image Metadata", description: "View, edit, and strip EXIF, GPS, IPTC, and XMP metadata from images.", accent: "purple", category: "Image" },
-  { slug: "markdown-preview", title: "Markdown Preview", description: "Real-time Markdown render and preview with full GFM support.", accent: "cyan", category: "Document" },
-  { slug: "password-generator", title: "Password Generator", description: "Generate strong, random passwords with customizable length and character options.", accent: "indigo", category: "Security" },
+  {
+    slug: "image-converter",
+    title: "Image Converter",
+    description:
+      "Batch convert images between PNG, JPG, GIF, BMP, TIFF, and more formats.",
+    accent: "purple",
+    category: "Image",
+  },
+  {
+    slug: "image-to-svg",
+    title: "Image to SVG",
+    description:
+      "Convert raster images to scalable SVG vector graphics with Potrace, entirely in your browser.",
+    accent: "purple",
+    category: "Image",
+  },
+  {
+    slug: "svg-optimizer",
+    title: "SVG Optimizer",
+    description:
+      "Optimize SVG files with svgtidy to strip redundant markup, metadata, and hidden nodes.",
+    accent: "cyan",
+    category: "Image",
+  },
+  {
+    slug: "video-converter",
+    title: "Video Converter",
+    description:
+      "Batch convert videos between MP4, WebM, AVI, MKV, MOV, and more using FFmpeg.",
+    accent: "blue",
+    category: "Video",
+  },
+  {
+    slug: "pdf-tools",
+    title: "PDF Tools",
+    description:
+      "Merge, split, compress, extract pages, and convert PDFs to images or text.",
+    accent: "red",
+    category: "Document",
+  },
+  {
+    slug: "info-redactor",
+    title: "Info Redactor",
+    description:
+      "Securely redact sensitive data from documents or images before sharing.",
+    accent: "indigo",
+    category: "Security",
+  },
+  {
+    slug: "path-converter",
+    title: "Path Converter",
+    description:
+      "Convert file paths between forward slashes and backslashes instantly.",
+    accent: "teal",
+    category: "Tool",
+  },
+  {
+    slug: "svg-viewer",
+    title: "SVG Viewer",
+    description:
+      "Preview SVG code with live rendering, animation playback, zoom, and background modes.",
+    accent: "cyan",
+    category: "Image",
+  },
+  {
+    slug: "code-formatter",
+    title: "Code Formatter",
+    description:
+      "Format and beautify 25+ languages — JS, TS, HTML, CSS, C/C++, Java, C#, and more.",
+    accent: "teal",
+    category: "Tool",
+  },
+  {
+    slug: "html-to-markdown",
+    title: "HTML to Markdown",
+    description:
+      "Convert HTML to clean Markdown with stripping options and GFM support.",
+    accent: "cyan",
+    category: "Document",
+  },
+  {
+    slug: "image-metadata",
+    title: "Image Metadata",
+    description:
+      "View, edit, and strip EXIF, GPS, IPTC, and XMP metadata from images.",
+    accent: "purple",
+    category: "Image",
+  },
+  {
+    slug: "markdown-preview",
+    title: "Markdown Preview",
+    description: "Real-time Markdown render and preview with full GFM support.",
+    accent: "cyan",
+    category: "Document",
+  },
+  {
+    slug: "password-generator",
+    title: "Password Generator",
+    description:
+      "Generate strong, random passwords with customizable length and character options.",
+    accent: "indigo",
+    category: "Security",
+  },
 ];
 
 export const getStaticPaths: GetStaticPaths = () => {
@@ -34,7 +127,7 @@ export const getStaticPaths: GetStaticPaths = () => {
 
 async function loadFont(): Promise<ArrayBuffer> {
   const res = await fetch(
-    "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap"
+    "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap",
   );
   const css = await res.text();
   const fontUrl = css.match(/src: url\((.+?)\)/)?.[1];
@@ -44,13 +137,14 @@ async function loadFont(): Promise<ArrayBuffer> {
 }
 
 export const GET: APIRoute = async ({ props }) => {
-  const { title, description, accent, category } = props as (typeof tools)[number];
+  const { title, description, accent, category } =
+    props as (typeof tools)[number];
   const color = accentColors[accent] || accentColors.indigo;
 
   const fontData = await loadFont();
 
   const svg = await satori(
-    ({
+    {
       type: "div",
       props: {
         style: {
@@ -60,7 +154,8 @@ export const GET: APIRoute = async ({ props }) => {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "60px 70px",
-          background: "linear-gradient(145deg, #0f0f14 0%, #13131a 50%, #0f0f14 100%)",
+          background:
+            "linear-gradient(145deg, #0f0f14 0%, #13131a 50%, #0f0f14 100%)",
           fontFamily: "Space Grotesk",
         },
         children: [
@@ -196,7 +291,8 @@ export const GET: APIRoute = async ({ props }) => {
                       color: "#52525b",
                       fontWeight: 600,
                     },
-                    children: "localkit.dev — Private, local, open-source tools",
+                    children:
+                      "localkit.dev — Private, local, open-source tools",
                   },
                 },
                 {
@@ -215,7 +311,7 @@ export const GET: APIRoute = async ({ props }) => {
           },
         ],
       },
-    }) as unknown as ReactNode,
+    } as unknown as ReactNode,
     {
       width: 1200,
       height: 630,
@@ -227,7 +323,7 @@ export const GET: APIRoute = async ({ props }) => {
           style: "normal" as const,
         },
       ],
-    }
+    },
   );
 
   const resvg = new Resvg(svg, {
