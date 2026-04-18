@@ -1,8 +1,4 @@
-export type PotracePresetId =
-  | "balanced"
-  | "logo"
-  | "illustration"
-  | "photo";
+export type PotracePresetId = "balanced" | "logo" | "illustration" | "photo";
 
 export interface PotraceOptions {
   turdsize: number;
@@ -17,6 +13,12 @@ export interface PotraceOptions {
 
 export interface ConversionOptions {
   potrace: PotraceOptions;
+}
+
+export interface ConvertFileOptions {
+  imageData?: ImageData;
+  maxDim?: number;
+  onProgress?: (progress: number) => void;
 }
 
 export interface SvgResult {
@@ -117,7 +119,8 @@ async function getPotrace() {
   return potraceModule;
 }
 
-const POTRACE_MAX_DIM = 1024;
+export const POTRACE_MAX_DIM = 1024;
+export const POTRACE_PREVIEW_MAX_DIM = 512;
 
 async function loadBitmap(
   file: File,
@@ -172,15 +175,13 @@ export async function extractImageData(
   return ctx.getImageData(0, 0, width, height);
 }
 
-async function convertWithPotrace(
-  file: File,
+async function convertImageDataWithPotrace(
+  imageData: ImageData,
   options: PotraceOptions,
   onProgress?: (progress: number) => void,
 ): Promise<string> {
   const pt = await getPotrace();
   onProgress?.(0);
-
-  const imageData = await extractImageData(file, POTRACE_MAX_DIM);
 
   const svg = await pt.potrace(imageData, {
     turdsize: options.turdsize,
@@ -204,6 +205,31 @@ function changeExtension(filename: string, ext: string): string {
   return `${baseName}.${ext}`;
 }
 
+function buildSvgResult(name: string, svgString: string): SvgResult {
+  const buffer = new TextEncoder().encode(svgString).buffer as ArrayBuffer;
+  return {
+    name,
+    svgString,
+    blob: new Blob([svgString], { type: "image/svg+xml" }),
+    buffer,
+  };
+}
+
+export async function convertFile(
+  file: File,
+  options: PotraceOptions,
+  { imageData, maxDim = POTRACE_MAX_DIM, onProgress }: ConvertFileOptions = {},
+): Promise<SvgResult> {
+  const name = changeExtension(file.name, "svg");
+  const sourceImageData = imageData ?? (await extractImageData(file, maxDim));
+  const svgString = await convertImageDataWithPotrace(
+    sourceImageData,
+    options,
+    onProgress,
+  );
+  return buildSvgResult(name, svgString);
+}
+
 export async function convertBatch(
   files: File[],
   options: ConversionOptions,
@@ -213,25 +239,17 @@ export async function convertBatch(
 
   for (let i = 0; i < files.length; i++) {
     onProgress?.(i, 0, files.length);
-    const name = changeExtension(files[i].name, "svg");
 
     try {
-      const svgString = await convertWithPotrace(
-        files[i],
-        options.potrace,
-        (p) => onProgress?.(i, p, files.length),
+      results.push(
+        await convertFile(files[i], options.potrace, {
+          maxDim: POTRACE_MAX_DIM,
+          onProgress: (p) => onProgress?.(i, p, files.length),
+        }),
       );
-
-      const buffer = new TextEncoder().encode(svgString).buffer as ArrayBuffer;
-      results.push({
-        name,
-        svgString,
-        blob: new Blob([svgString], { type: "image/svg+xml" }),
-        buffer,
-      });
     } catch (err: unknown) {
       results.push({
-        name,
+        name: changeExtension(files[i].name, "svg"),
         svgString: "",
         blob: new Blob([], { type: "image/svg+xml" }),
         buffer: new ArrayBuffer(0),

@@ -1,13 +1,19 @@
 import {
+  startTransition,
+  useDeferredValue,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type DragEvent,
 } from "react";
 import {
   convertBatch,
+  convertFile,
+  extractImageData,
   POTRACE_PRESETS,
+  POTRACE_PREVIEW_MAX_DIM,
   type PotraceOptions,
   type PotracePresetId,
   type SvgResult,
@@ -32,8 +38,16 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function toSvgName(filename: string): string {
+  const dotIndex = filename.lastIndexOf(".");
+  const baseName = dotIndex > 0 ? filename.slice(0, dotIndex) : filename;
+  return `${baseName}.svg`;
+}
+
 type BgMode = "dark" | "light" | "checker";
 type ViewMode = "svg" | "original" | "side-by-side";
+
+const LIVE_PREVIEW_DEBOUNCE_MS = 300;
 
 const BG_STYLES: Record<BgMode, React.CSSProperties> = {
   dark: { backgroundColor: "#0c0c1d" },
@@ -95,11 +109,21 @@ export default function ImageToSvgTool() {
   const [bgMode, setBgMode] = useState<BgMode>("checker");
   const [zoom, setZoom] = useState(100);
   const [viewMode, setViewMode] = useState<ViewMode>("svg");
+  const [livePreviewResult, setLivePreviewResult] = useState<SvgResult | null>(
+    null,
+  );
+  const [isPreviewRendering, setIsPreviewRendering] = useState(false);
   const [svgBlobUrl, setSvgBlobUrl] = useState<string | null>(null);
   const [originalBlobUrl, setOriginalBlobUrl] = useState<string | null>(null);
+  const previewImageDataCacheRef = useRef(
+    new WeakMap<File, Promise<ImageData>>(),
+  );
+  const previewRequestIdRef = useRef(0);
+  const deferredPotraceOpts = useDeferredValue(potraceOpts);
   const hasFiles = selectedFiles.length > 0;
   const hasResults = convertedResults.length > 0;
-  const currentResult = hasResults ? convertedResults[previewIndex] : null;
+  const previewFile = selectedFiles[previewIndex] ?? null;
+  const previewResult = livePreviewResult;
   const currentPotracePreset =
     POTRACE_PRESET_IDS.find((presetId) =>
       matchesPreset(potraceOpts, POTRACE_PRESETS[presetId].options),
@@ -114,31 +138,93 @@ export default function ImageToSvgTool() {
 
   // Build preview blob URLs
   useEffect(() => {
-    if (svgBlobUrl) URL.revokeObjectURL(svgBlobUrl);
-    if (currentResult) {
-      const url = URL.createObjectURL(currentResult.blob);
-      setSvgBlobUrl(url);
-    } else {
+    if (!previewResult || previewResult.error) {
       setSvgBlobUrl(null);
+      return;
     }
+
+    const url = URL.createObjectURL(previewResult.blob);
+    setSvgBlobUrl(url);
     return () => {
-      if (svgBlobUrl) URL.revokeObjectURL(svgBlobUrl);
+      URL.revokeObjectURL(url);
     };
-  }, [currentResult]);
+  }, [previewResult]);
 
   useEffect(() => {
-    if (originalBlobUrl) URL.revokeObjectURL(originalBlobUrl);
-    const file = selectedFiles[previewIndex];
-    if (file && hasResults) {
-      const url = URL.createObjectURL(file);
-      setOriginalBlobUrl(url);
-    } else {
+    if (!previewFile) {
       setOriginalBlobUrl(null);
+      return;
     }
+
+    const url = URL.createObjectURL(previewFile);
+    setOriginalBlobUrl(url);
     return () => {
-      if (originalBlobUrl) URL.revokeObjectURL(originalBlobUrl);
+      URL.revokeObjectURL(url);
     };
-  }, [previewIndex, hasResults, selectedFiles]);
+  }, [previewFile]);
+
+  useEffect(() => {
+    setLivePreviewResult(null);
+    setIsPreviewRendering(false);
+  }, [previewFile]);
+
+  useEffect(() => {
+    if (!previewFile) {
+      previewRequestIdRef.current += 1;
+      setIsPreviewRendering(false);
+      return;
+    }
+
+    const requestId = ++previewRequestIdRef.current;
+    const timerId = window.setTimeout(async () => {
+      setIsPreviewRendering(true);
+
+      try {
+        let imageDataPromise =
+          previewImageDataCacheRef.current.get(previewFile);
+        if (!imageDataPromise) {
+          imageDataPromise = extractImageData(
+            previewFile,
+            POTRACE_PREVIEW_MAX_DIM,
+          );
+          previewImageDataCacheRef.current.set(previewFile, imageDataPromise);
+        }
+
+        const imageData = await imageDataPromise;
+        const result = await convertFile(previewFile, deferredPotraceOpts, {
+          imageData,
+        });
+
+        if (previewRequestIdRef.current !== requestId) return;
+
+        startTransition(() => {
+          setLivePreviewResult(result);
+        });
+      } catch (err) {
+        previewImageDataCacheRef.current.delete(previewFile);
+        if (previewRequestIdRef.current !== requestId) return;
+
+        const message = err instanceof Error ? err.message : String(err);
+        startTransition(() => {
+          setLivePreviewResult({
+            name: toSvgName(previewFile.name),
+            svgString: "",
+            blob: new Blob([], { type: "image/svg+xml" }),
+            buffer: new ArrayBuffer(0),
+            error: message,
+          });
+        });
+      } finally {
+        if (previewRequestIdRef.current === requestId) {
+          setIsPreviewRendering(false);
+        }
+      }
+    }, LIVE_PREVIEW_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [deferredPotraceOpts, previewFile]);
 
   // ── File handling ────────────────────────────────────────────────────
 
@@ -332,7 +418,7 @@ export default function ImageToSvgTool() {
         </div>
 
         {/* SVG Preview */}
-        {hasResults && currentResult && (
+        {hasFiles && previewFile && (
           <div className="rounded-xl border border-border-card bg-bg-card overflow-hidden">
             {/* Preview toolbar */}
             <div className="flex items-center justify-between border-b border-border-card px-4 py-2">
@@ -359,7 +445,17 @@ export default function ImageToSvgTool() {
                   ),
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="max-w-44 truncate text-[10px] font-medium text-text-secondary">
+                    {previewFile.name}
+                  </p>
+                  <p className="text-[10px] text-text-muted">
+                    {isPreviewRendering
+                      ? "Updating live preview..."
+                      : `Live preview at ${POTRACE_PREVIEW_MAX_DIM}px max`}
+                  </p>
+                </div>
                 {/* Background mode */}
                 {(["checker", "dark", "light"] as BgMode[]).map((mode) => (
                   <button
@@ -411,7 +507,7 @@ export default function ImageToSvgTool() {
                 maxHeight: "500px",
               }}
             >
-              {currentResult?.error ? (
+              {previewResult?.error ? (
                 <div className="flex flex-col items-center gap-2 p-6 text-center">
                   <svg
                     className="h-8 w-8 text-accent-red"
@@ -427,10 +523,10 @@ export default function ImageToSvgTool() {
                     />
                   </svg>
                   <p className="text-xs text-accent-red font-medium">
-                    Conversion Failed
+                    Preview Failed
                   </p>
                   <p className="text-[10px] text-text-muted max-w-xs">
-                    {currentResult.error}
+                    {previewResult.error}
                   </p>
                 </div>
               ) : viewMode === "side-by-side" ? (
@@ -452,7 +548,7 @@ export default function ImageToSvgTool() {
                     )}
                   </div>
                   <div className="flex-1 flex items-center justify-center p-2 overflow-hidden">
-                    {svgBlobUrl && (
+                    {svgBlobUrl ? (
                       <img
                         src={svgBlobUrl}
                         alt="SVG Preview"
@@ -462,6 +558,8 @@ export default function ImageToSvgTool() {
                           transformOrigin: "center center",
                         }}
                       />
+                    ) : (
+                      <PreviewLoadingState />
                     )}
                   </div>
                 </div>
@@ -477,23 +575,23 @@ export default function ImageToSvgTool() {
                     }}
                   />
                 )
+              ) : svgBlobUrl ? (
+                <img
+                  src={svgBlobUrl}
+                  alt="SVG Preview"
+                  className="max-h-full max-w-full object-contain p-2"
+                  style={{
+                    transform: `scale(${zoom / 100})`,
+                    transformOrigin: "center center",
+                  }}
+                />
               ) : (
-                svgBlobUrl && (
-                  <img
-                    src={svgBlobUrl}
-                    alt="SVG Preview"
-                    className="max-h-full max-w-full object-contain p-2"
-                    style={{
-                      transform: `scale(${zoom / 100})`,
-                      transformOrigin: "center center",
-                    }}
-                  />
-                )
+                <PreviewLoadingState />
               )}
             </div>
 
             {/* File navigation for batch */}
-            {convertedResults.length > 1 && (
+            {selectedFiles.length > 1 && (
               <div className="flex items-center justify-center gap-2 border-t border-border-card px-4 py-2">
                 <button
                   type="button"
@@ -516,16 +614,16 @@ export default function ImageToSvgTool() {
                   </svg>
                 </button>
                 <span className="text-xs text-text-secondary">
-                  {previewIndex + 1} / {convertedResults.length}
+                  {previewIndex + 1} / {selectedFiles.length}
                 </span>
                 <button
                   type="button"
                   onClick={() =>
                     setPreviewIndex((i) =>
-                      Math.min(convertedResults.length - 1, i + 1),
+                      Math.min(selectedFiles.length - 1, i + 1),
                     )
                   }
-                  disabled={previewIndex === convertedResults.length - 1}
+                  disabled={previewIndex === selectedFiles.length - 1}
                   className="rounded p-1 text-text-muted transition-colors hover:text-text-primary disabled:opacity-30"
                 >
                   <svg
@@ -573,31 +671,41 @@ export default function ImageToSvgTool() {
               {selectedFiles.map((file, index) => (
                 <div
                   key={`${file.name}-${file.size}-${index}`}
-                  className="flex items-center gap-3 rounded-lg border border-border-card bg-bg-secondary px-3 py-2"
+                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ${
+                    previewIndex === index
+                      ? "border-accent-purple/30 bg-accent-purple/5"
+                      : "border-border-card bg-bg-secondary hover:border-border-card-hover"
+                  }`}
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-accent-purple/10">
-                    <svg
-                      className="h-4 w-4 text-accent-purple"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"
-                      />
-                    </svg>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-text-primary">
-                      {file.name}
-                    </p>
-                    <p className="text-[10px] text-text-muted">
-                      {formatSize(file.size)}
-                    </p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewIndex(index)}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-accent-purple/10">
+                      <svg
+                        className="h-4 w-4 text-accent-purple"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium text-text-primary">
+                        {file.name}
+                      </p>
+                      <p className="text-[10px] text-text-muted">
+                        {formatSize(file.size)}
+                      </p>
+                    </div>
+                  </button>
                   <button
                     type="button"
                     onClick={() => removeFile(index)}
@@ -774,6 +882,13 @@ export default function ImageToSvgTool() {
                 </SelectField>
               </>
             </div>
+
+            <p className="mt-4 text-[10px] leading-relaxed text-text-muted">
+              Live preview updates the selected file after a short pause and
+              uses a reduced {POTRACE_PREVIEW_MAX_DIM}px source for speed. Use
+              the full convert action to refresh downloadable SVGs for every
+              file.
+            </p>
 
             {/* Convert button */}
             <button
@@ -972,6 +1087,20 @@ export default function ImageToSvgTool() {
 }
 
 // ── Reusable sub-components ──────────────────────────────────────────────
+
+function PreviewLoadingState() {
+  return (
+    <div className="flex flex-col items-center gap-2 p-6 text-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-purple/20 border-t-accent-purple" />
+      <p className="text-xs font-medium text-text-secondary">
+        Rendering preview
+      </p>
+      <p className="max-w-xs text-[10px] text-text-muted">
+        Potrace is retracing the selected image with the latest settings.
+      </p>
+    </div>
+  );
+}
 
 function InfoTooltip({ text }: { text: string }) {
   return (

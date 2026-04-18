@@ -16,13 +16,14 @@ This tool works especially well for icons, logos, stickers, and illustrations wi
 
 ### Key Features
 
-* **Batch conversion**: Convert multiple images in one run
-* **Built-in presets**: Start from tuned Potrace profiles for logos, illustrations, and photos
-* **Potrace controls**: Adjust noise filtering, corner smoothness, curve optimization, and tracing behavior
-* **Color extraction**: Keep color regions in the SVG, or turn it off for black and white output
-* **Preview modes**: Switch between SVG, original image, or a side by side comparison
-* **Background modes**: Preview against light, dark, or checkerboard backgrounds
-* **ZIP download**: Download all successful conversions in one archive
+- **Batch conversion**: Convert multiple images in one run
+- **Built-in presets**: Start from tuned Potrace profiles for logos, illustrations, and photos
+- **Potrace controls**: Adjust noise filtering, corner smoothness, curve optimization, and tracing behavior
+- **Color extraction**: Keep color regions in the SVG, or turn it off for black and white output
+- **Live preview**: The selected image retraces automatically as you adjust settings
+- **Preview modes**: Switch between SVG, original image, or a side by side comparison
+- **Background modes**: Preview against light, dark, or checkerboard backgrounds
+- **ZIP download**: Download all successful conversions in one archive
 
 ## Architecture
 
@@ -30,16 +31,17 @@ The tool uses **Potrace**, compiled to WebAssembly through `esm-potrace-wasm`.
 
 The Potrace module loads lazily when you actually start a conversion, which keeps the initial page load lighter.
 
-Before tracing starts, each image is decoded in the browser and drawn into a canvas. For larger inputs, the tool scales the image down before sending it into Potrace. This keeps memory usage under control and avoids pushing the WASM runtime past its heap limits.
+Before tracing starts, each image is decoded in the browser and drawn into a canvas. For larger inputs, the tool scales the image down before sending it into Potrace. This keeps memory usage under control and avoids pushing the WASM runtime past its heap limits. Live preview uses a smaller source image than the final conversion so slider changes stay responsive.
 
 ### Processing Pipeline
 
 1. **File input**: The user drops images into the tool or selects them through the file picker.
 2. **Client-side decode**: Each file is decoded with `createImageBitmap()` and drawn into a canvas so the tool can extract `ImageData`.
 3. **Safety downscaling**: If the image is very large, it is resized to fit within a 1024px maximum dimension before tracing.
-4. **Vectorization**: Potrace traces the bitmap into SVG paths using the selected settings.
-5. **Preview generation**: The SVG string is wrapped as a Blob so the browser can preview it instantly.
-6. **Download**: Successful outputs are downloaded one by one, or packed into a ZIP with `jszip` when multiple files finish successfully.
+4. **Live preview**: While you tune settings, the selected image is retraced from a reduced preview bitmap so changes show up quickly.
+5. **Vectorization**: Potrace traces the bitmap into SVG paths using the selected settings.
+6. **Preview generation**: The SVG string is wrapped as a Blob so the browser can preview it instantly.
+7. **Download**: Successful outputs are downloaded one by one, or packed into a ZIP with `jszip` when multiple files finish successfully.
 
 ### Code Structure
 
@@ -60,13 +62,13 @@ All processing happens locally in your browser. Your images are never uploaded t
 
 ## Technical Details
 
-* **Tracing engine**: Potrace via WebAssembly
-* **Input formats**: PNG, JPG, GIF, BMP, WebP, TIFF
-* **Output format**: SVG
-* **Large image handling**: Inputs may be resized to a maximum dimension of 1024px before tracing
-* **Preference storage**: Potrace settings are saved in `localStorage`
-* **Batch downloads**: Powered by `jszip`
-* **Browser support**: Modern browsers with WebAssembly support
+- **Tracing engine**: Potrace via WebAssembly
+- **Input formats**: PNG, JPG, GIF, BMP, WebP, TIFF
+- **Output format**: SVG
+- **Large image handling**: Final conversions may be resized to a maximum dimension of 1024px before tracing, while live preview uses a smaller bitmap for responsiveness
+- **Preference storage**: Potrace settings are saved in `localStorage`
+- **Batch downloads**: Powered by `jszip`
+- **Browser support**: Modern browsers with WebAssembly support
 
 ## FAQs
 

@@ -14,7 +14,12 @@ vi.mock("esm-potrace-wasm", () => ({
   potrace: potraceMock,
 }));
 
-import { DEFAULT_POTRACE_OPTIONS, convertBatch } from "../src/lib/image-to-svg";
+import {
+  DEFAULT_POTRACE_OPTIONS,
+  POTRACE_PREVIEW_MAX_DIM,
+  convertBatch,
+  convertFile,
+} from "../src/lib/image-to-svg";
 
 const ILLUSTRATIONS_DIR = path.join(__dirname, "illustrations");
 
@@ -124,5 +129,41 @@ describe("image to svg conversion", () => {
     expect(progressEvents).toContainEqual([0, 1, 2]);
     expect(progressEvents).toContainEqual([1, 1, 2]);
     expect(progressEvents.at(-1)).toEqual([2, 0, 2]);
+  });
+
+  it("supports lower resolution preview conversions", async () => {
+    const file = createFixtureFile(
+      "cute-cartoon-puppy-dog-illustration-free-vector.jpg",
+    );
+
+    const result = await convertFile(file, DEFAULT_POTRACE_OPTIONS, {
+      maxDim: POTRACE_PREVIEW_MAX_DIM,
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.svgString).toContain(
+      `data-width="${POTRACE_PREVIEW_MAX_DIM}"`,
+    );
+    expect(result.svgString).toContain('data-height="384"');
+  });
+
+  it("reuses provided image data without decoding the file again", async () => {
+    const file = createFixtureFile(
+      "66bb67135fdd14f83c75ff3d_6694de41bd4a4967151e2f08_bold-illustration-style.png",
+    );
+    const imageData = {
+      width: 320,
+      height: 180,
+      data: new Uint8ClampedArray(320 * 180 * 4),
+    } as ImageData;
+
+    const result = await convertFile(file, DEFAULT_POTRACE_OPTIONS, {
+      imageData,
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.svgString).toContain('data-width="320"');
+    expect(result.svgString).toContain('data-height="180"');
+    expect(globalThis.createImageBitmap).not.toHaveBeenCalled();
   });
 });
