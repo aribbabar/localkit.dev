@@ -70,6 +70,14 @@ const tools = [
     category: "Tool",
   },
   {
+    slug: "pay-calculator",
+    title: "Pay Calculator",
+    description:
+      "Convert hourly and annual pay, compare two compensation scenarios, and save your schedule assumptions locally.",
+    accent: "teal",
+    category: "Tool",
+  },
+  {
     slug: "svg-viewer",
     title: "SVG Viewer",
     description:
