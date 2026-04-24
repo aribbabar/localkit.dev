@@ -43,6 +43,7 @@
     "vite-plugin-wasm": "^3.6.0"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.4.0",
     "@types/turndown": "^5.0.6",
     "vitest": "^4.0.18"
   }
