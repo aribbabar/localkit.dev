@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  DEFAULT_LLM_COST_PREFERENCES,
   DEFAULT_LLM_MODELS,
   LLM_COST_PREFERENCES_KEY,
   calculateLlmUsageCost,
@@ -21,6 +22,11 @@ describe("llm cost calculator", () => {
       inputCostPerMillion: 5,
       outputCostPerMillion: 30,
     });
+  });
+
+  it("starts without a selected model by default", () => {
+    expect(DEFAULT_LLM_COST_PREFERENCES.selectedModelId).toBe("");
+    expect(sanitizeLlmCostPreferences(undefined).selectedModelId).toBe("");
   });
 
   it("calculates input, output, and total costs per million tokens", () => {
@@ -157,6 +163,26 @@ describe("llm cost calculator", () => {
 
     expect(loadLlmCostPreferences(storage)).toEqual(
       sanitizeLlmCostPreferences(undefined),
+    );
+  });
+
+  it("loads a previously selected model from storage", () => {
+    const selectedModelId = DEFAULT_LLM_MODELS[1].id;
+    const storage = {
+      getItem: vi.fn(() =>
+        JSON.stringify({
+          selectedModelId,
+          inputTokens: "1000",
+          outputTokens: "2000",
+          customModels: [],
+          defaultModelOverrides: {},
+        }),
+      ),
+      setItem: vi.fn(),
+    };
+
+    expect(loadLlmCostPreferences(storage).selectedModelId).toBe(
+      selectedModelId,
     );
   });
 

@@ -84,7 +84,7 @@ const DEFAULT_MODEL_ID_SET = new Set(
 );
 
 export const DEFAULT_LLM_COST_PREFERENCES: LlmCostPreferences = {
-  selectedModelId: DEFAULT_LLM_MODELS[0]?.id ?? "",
+  selectedModelId: "",
   inputTokens: "100000",
   outputTokens: "10000",
   customModels: [],
@@ -269,7 +269,8 @@ export function sanitizeLlmCostPreferences(value: unknown): LlmCostPreferences {
   ]);
   const selectedModelId =
     typeof candidate.selectedModelId === "string" &&
-    allModelIds.has(candidate.selectedModelId)
+    (candidate.selectedModelId === "" ||
+      allModelIds.has(candidate.selectedModelId))
       ? candidate.selectedModelId
       : DEFAULT_LLM_COST_PREFERENCES.selectedModelId;
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Autocomplete, { type AutocompleteOption } from "../ui/Autocomplete";
+import Modal from "../ui/Modal";
 import {
   DEFAULT_LLM_MODELS,
   calculateLlmUsageCost,
@@ -22,6 +23,12 @@ interface ModelFormState {
   outputCostPerMillion: string;
 }
 
+interface PricingEditorState {
+  mode: "add" | "edit";
+  modelId: string;
+  form: ModelFormState;
+}
+
 const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -36,6 +43,13 @@ const NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
 const DEFAULT_MODEL_BY_ID = new Map(
   DEFAULT_LLM_MODELS.map((model) => [model.id, model]),
 );
+
+const EMPTY_MODEL_FORM: ModelFormState = {
+  name: "",
+  provider: "",
+  inputCostPerMillion: "",
+  outputCostPerMillion: "",
+};
 
 const panelClass = "rounded-lg border border-border-card bg-bg-card";
 const fieldClass =
@@ -78,20 +92,16 @@ function hasDefaultOverride(preferences: LlmCostPreferences, modelId: string) {
 export default function LlmCostCalculatorApp() {
   const savedPreferences = useMemo(loadLlmCostPreferences, []);
   const [preferences, setPreferences] = useState(savedPreferences);
-  const [modelForm, setModelForm] = useState<ModelFormState>(() => {
-    const initialModel =
-      getLlmCostModels(savedPreferences).find(
-        (model) => model.id === savedPreferences.selectedModelId,
-      ) ?? DEFAULT_LLM_MODELS[0];
-
-    return modelToForm(initialModel);
-  });
+  const [pricingEditor, setPricingEditor] = useState<PricingEditorState | null>(
+    null,
+  );
+  const [editorError, setEditorError] = useState("");
   const [notice, setNotice] = useState("");
 
   const models = useMemo(() => getLlmCostModels(preferences), [preferences]);
-  const selectedModel =
-    models.find((model) => model.id === preferences.selectedModelId) ??
-    models[0];
+  const selectedModel = models.find(
+    (model) => model.id === preferences.selectedModelId,
+  );
   const selectedIsDefault = selectedModel
     ? isDefaultLlmModel(selectedModel.id)
     : false;
@@ -119,12 +129,6 @@ export default function LlmCostCalculatorApp() {
     saveLlmCostPreferences(preferences);
   }, [preferences]);
 
-  useEffect(() => {
-    if (selectedModel) {
-      setModelForm(modelToForm(selectedModel));
-    }
-  }, [selectedModel?.id]);
-
   function updatePreferences(
     updater: (previous: LlmCostPreferences) => LlmCostPreferences,
   ) {
@@ -136,22 +140,77 @@ export default function LlmCostCalculatorApp() {
     if (!nextModel) return;
 
     setPreferences((previous) => ({ ...previous, selectedModelId: modelId }));
-    setModelForm(modelToForm(nextModel));
     setNotice("");
   }
 
-  function saveSelectedModel() {
+  function openAddModel() {
+    setPricingEditor({
+      mode: "add",
+      modelId: "",
+      form: EMPTY_MODEL_FORM,
+    });
+    setEditorError("");
+  }
+
+  function openEditModel() {
     if (!selectedModel) return;
 
-    const nextModel = formToModel(modelForm, selectedModel.id);
+    setPricingEditor({
+      mode: "edit",
+      modelId: selectedModel.id,
+      form: modelToForm(selectedModel),
+    });
+    setEditorError("");
+  }
+
+  function updateEditorForm(update: Partial<ModelFormState>) {
+    setPricingEditor((previous) =>
+      previous
+        ? {
+            ...previous,
+            form: {
+              ...previous.form,
+              ...update,
+            },
+          }
+        : previous,
+    );
+  }
+
+  function closeEditor() {
+    setPricingEditor(null);
+    setEditorError("");
+  }
+
+  function saveEditorModel() {
+    if (!pricingEditor) return;
+
+    const nextId =
+      pricingEditor.mode === "add"
+        ? createLlmModelId(
+            models,
+            pricingEditor.form.name || "Custom model",
+            pricingEditor.form.provider || "Custom",
+          )
+        : pricingEditor.modelId;
+
+    const nextModel = formToModel(pricingEditor.form, nextId);
     if (!nextModel) {
-      setNotice(
+      setEditorError(
         "Enter a model name, provider, and non-negative input/output rates.",
       );
       return;
     }
 
     updatePreferences((previous) => {
+      if (pricingEditor.mode === "add") {
+        return {
+          ...previous,
+          selectedModelId: nextModel.id,
+          customModels: [...previous.customModels, nextModel],
+        };
+      }
+
       if (isDefaultLlmModel(nextModel.id)) {
         return {
           ...previous,
@@ -169,42 +228,26 @@ export default function LlmCostCalculatorApp() {
         ),
       };
     });
-    setNotice(`${nextModel.name} saved in this browser.`);
-  }
-
-  function addCustomModel() {
-    const nextId = createLlmModelId(models, "Custom model", "Custom");
-    const nextModel: LlmModel = {
-      id: nextId,
-      name: "Custom model",
-      provider: "Custom",
-      inputCostPerMillion: 1,
-      outputCostPerMillion: 3,
-    };
-
-    setPreferences((previous) => ({
-      ...previous,
-      selectedModelId: nextId,
-      customModels: [...previous.customModels, nextModel],
-    }));
-    setModelForm(modelToForm(nextModel));
-    setNotice("Custom model added. Update its pricing, then save it.");
+    setNotice(
+      pricingEditor.mode === "add"
+        ? `${nextModel.name} added to local storage.`
+        : `${nextModel.name} saved in this browser.`,
+    );
+    closeEditor();
   }
 
   function deleteSelectedModel() {
     if (!selectedModel || selectedIsDefault) return;
 
-    const nextModels = models.filter((model) => model.id !== selectedModel.id);
-    const nextSelectedId = DEFAULT_LLM_MODELS[0]?.id ?? nextModels[0]?.id ?? "";
-
     setPreferences((previous) => ({
       ...previous,
-      selectedModelId: nextSelectedId,
+      selectedModelId: "",
       customModels: previous.customModels.filter(
         (model) => model.id !== selectedModel.id,
       ),
     }));
     setNotice(`${selectedModel.name} deleted from local storage.`);
+    closeEditor();
   }
 
   function resetSelectedDefault() {
@@ -216,8 +259,8 @@ export default function LlmCostCalculatorApp() {
     setPreferences((previous) =>
       resetDefaultLlmModel(previous, selectedModel.id),
     );
-    setModelForm(modelToForm(defaultModel));
     setNotice(`${defaultModel.name} reset to the default pricing.`);
+    closeEditor();
   }
 
   return (
@@ -285,7 +328,10 @@ export default function LlmCostCalculatorApp() {
             </div>
           </div>
 
-          <ResultPanel costBreakdown={costBreakdown} />
+          <ResultPanel
+            costBreakdown={costBreakdown}
+            hasSelectedModel={Boolean(selectedModel)}
+          />
         </div>
       </section>
 
@@ -315,113 +361,193 @@ export default function LlmCostCalculatorApp() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                Pricing editor
+                Pricing
               </p>
               <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
-                {selectedModel?.name ?? "Select a model"}
+                Model pricing
               </h3>
+              <p className="mt-2 text-sm leading-relaxed text-text-muted">
+                Add a custom model or edit pricing for the selected model in a
+                focused dialog.
+              </p>
             </div>
+          </div>
+
+          <div className="mt-5 rounded-md border border-border-card bg-bg-secondary/45 p-4">
+            <p className="text-xs font-medium text-text-muted">
+              Selected model
+            </p>
+            <p className="mt-1 font-display text-base font-semibold text-text-primary">
+              {selectedModel?.name ?? "No model selected"}
+            </p>
+            {selectedModel && (
+              <p className="mt-1 text-xs text-text-muted">
+                {selectedModel.provider} ·{" "}
+                {formatRate(selectedModel.inputCostPerMillion)} input /{" "}
+                {formatRate(selectedModel.outputCostPerMillion)} output per 1M
+              </p>
+            )}
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={addCustomModel}
+              onClick={openAddModel}
               className="inline-flex items-center justify-center gap-2 rounded-md border border-accent-teal/30 bg-accent-teal/10 px-3 py-2 text-sm font-medium text-accent-teal transition-colors hover:bg-accent-teal/15"
             >
               <PlusIcon />
               Add model
             </button>
+            <button
+              type="button"
+              onClick={openEditModel}
+              disabled={!selectedModel}
+              className={quietButtonClass}
+            >
+              Edit model
+            </button>
           </div>
 
-          {selectedModel && (
-            <div className="mt-5 space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <TextField
-                  label="Model name"
-                  value={modelForm.name}
-                  onChange={(value) =>
-                    setModelForm((previous) => ({ ...previous, name: value }))
-                  }
-                />
-                <TextField
-                  label="Provider"
-                  value={modelForm.provider}
-                  onChange={(value) =>
-                    setModelForm((previous) => ({
-                      ...previous,
-                      provider: value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <TextField
-                  label="Input $ / 1M"
-                  inputMode="decimal"
-                  value={modelForm.inputCostPerMillion}
-                  onChange={(value) =>
-                    setModelForm((previous) => ({
-                      ...previous,
-                      inputCostPerMillion: value,
-                    }))
-                  }
-                />
-                <TextField
-                  label="Output $ / 1M"
-                  inputMode="decimal"
-                  value={modelForm.outputCostPerMillion}
-                  onChange={(value) =>
-                    setModelForm((previous) => ({
-                      ...previous,
-                      outputCostPerMillion: value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-2 border-t border-border-card pt-4">
-                <button
-                  type="button"
-                  onClick={saveSelectedModel}
-                  className="inline-flex items-center justify-center rounded-md border border-accent-teal/30 bg-accent-teal/10 px-4 py-2 text-sm font-medium text-accent-teal transition-colors hover:bg-accent-teal/15"
-                >
-                  Save pricing
-                </button>
-                {selectedIsDefault ? (
-                  <button
-                    type="button"
-                    onClick={resetSelectedDefault}
-                    disabled={!selectedHasOverride}
-                    className={quietButtonClass}
-                  >
-                    Reset default
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={deleteSelectedModel}
-                    className="inline-flex items-center justify-center rounded-md border border-accent-red/25 bg-accent-red/5 px-4 py-2 text-sm font-medium text-accent-red transition-colors hover:bg-accent-red/10"
-                  >
-                    Delete model
-                  </button>
-                )}
-              </div>
-
-              {notice && (
-                <p className="rounded-md border border-accent-green/20 bg-accent-green/10 px-3 py-2 text-sm text-accent-green">
-                  {notice}
-                </p>
-              )}
-            </div>
+          {notice && (
+            <p className="mt-4 rounded-md border border-accent-green/20 bg-accent-green/10 px-3 py-2 text-sm text-accent-green">
+              {notice}
+            </p>
           )}
         </div>
       </section>
+
+      <ModelPricingModal
+        editor={pricingEditor}
+        editorError={editorError}
+        selectedIsDefault={selectedIsDefault}
+        selectedHasOverride={Boolean(selectedHasOverride)}
+        onClose={closeEditor}
+        onFormChange={updateEditorForm}
+        onSave={saveEditorModel}
+        onResetDefault={resetSelectedDefault}
+        onDelete={deleteSelectedModel}
+      />
     </div>
+  );
+}
+
+function ModelPricingModal({
+  editor,
+  editorError,
+  selectedIsDefault,
+  selectedHasOverride,
+  onClose,
+  onFormChange,
+  onSave,
+  onResetDefault,
+  onDelete,
+}: {
+  editor: PricingEditorState | null;
+  editorError: string;
+  selectedIsDefault: boolean;
+  selectedHasOverride: boolean;
+  onClose: () => void;
+  onFormChange: (update: Partial<ModelFormState>) => void;
+  onSave: () => void;
+  onResetDefault: () => void;
+  onDelete: () => void;
+}) {
+  const isEditing = editor?.mode === "edit";
+
+  return (
+    <Modal
+      isOpen={Boolean(editor)}
+      title={isEditing ? "Edit model pricing" : "Add model"}
+      description={
+        isEditing
+          ? "Update the selected model pricing stored in this browser."
+          : "Create a custom model and save its pricing locally."
+      }
+      onClose={onClose}
+    >
+      {editor && (
+        <div className="space-y-4 px-5 py-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <TextField
+              label="Model name"
+              value={editor.form.name}
+              autoFocus
+              onChange={(value) => onFormChange({ name: value })}
+            />
+            <TextField
+              label="Provider"
+              value={editor.form.provider}
+              onChange={(value) => onFormChange({ provider: value })}
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <TextField
+              label="Input $ / 1M"
+              inputMode="decimal"
+              value={editor.form.inputCostPerMillion}
+              onChange={(value) => onFormChange({ inputCostPerMillion: value })}
+            />
+            <TextField
+              label="Output $ / 1M"
+              inputMode="decimal"
+              value={editor.form.outputCostPerMillion}
+              onChange={(value) =>
+                onFormChange({ outputCostPerMillion: value })
+              }
+            />
+          </div>
+
+          {editorError && (
+            <p className="rounded-md border border-accent-red/20 bg-accent-red/5 px-3 py-2 text-sm leading-relaxed text-accent-red">
+              {editorError}
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-2 border-t border-border-card pt-4">
+            <button
+              type="button"
+              onClick={onSave}
+              className="inline-flex items-center justify-center rounded-md border border-accent-teal/30 bg-accent-teal/10 px-4 py-2 text-sm font-medium text-accent-teal transition-colors hover:bg-accent-teal/15"
+            >
+              {isEditing ? "Save pricing" : "Add model"}
+            </button>
+            {isEditing && selectedIsDefault && (
+              <button
+                type="button"
+                onClick={onResetDefault}
+                disabled={!selectedHasOverride}
+                className={quietButtonClass}
+              >
+                Reset default
+              </button>
+            )}
+            {isEditing && !selectedIsDefault && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="inline-flex items-center justify-center rounded-md border border-accent-red/25 bg-accent-red/5 px-4 py-2 text-sm font-medium text-accent-red transition-colors hover:bg-accent-red/10"
+              >
+                Delete model
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className={quietButtonClass}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }
 
 function SelectedModelRates({ model }: { model: LlmModel }) {
   return (
-    <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-border-card bg-bg-secondary/45">
+    <div className="grid h-[42px] grid-cols-2 self-end overflow-hidden rounded-lg border border-border-card bg-bg-secondary/45">
       <RateStat
         label="Input / 1M"
         value={formatRate(model.inputCostPerMillion)}
@@ -436,8 +562,10 @@ function SelectedModelRates({ model }: { model: LlmModel }) {
 
 function ResultPanel({
   costBreakdown,
+  hasSelectedModel,
 }: {
   costBreakdown: ReturnType<typeof calculateLlmUsageCost>;
+  hasSelectedModel: boolean;
 }) {
   return (
     <aside className="border-t border-border-card bg-bg-secondary/55 p-5 sm:p-6 lg:border-l lg:border-t-0">
@@ -462,7 +590,9 @@ function ResultPanel({
         </>
       ) : (
         <p className="mt-3 rounded-md border border-accent-red/20 bg-accent-red/5 px-3 py-2 text-sm leading-relaxed text-accent-red">
-          Enter non-negative token counts to calculate the estimate.
+          {hasSelectedModel
+            ? "Enter non-negative token counts to calculate the estimate."
+            : "Select a model to calculate the estimate."}
         </p>
       )}
     </aside>
@@ -501,12 +631,14 @@ function TextField({
   onChange,
   placeholder = "",
   inputMode = "text",
+  autoFocus = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   inputMode?: "text" | "decimal";
+  autoFocus?: boolean;
 }) {
   return (
     <label className="block">
@@ -519,6 +651,7 @@ function TextField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        autoFocus={autoFocus}
         className={fieldClass}
       />
     </label>
@@ -527,9 +660,9 @@ function TextField({
 
 function RateStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-r border-border-card px-3 py-3 last:border-r-0">
-      <p className="text-xs text-text-muted">{label}</p>
-      <p className="mt-1 font-mono text-sm font-semibold text-text-primary">
+    <div className="flex flex-col justify-center border-r border-border-card px-3 py-1.5 last:border-r-0">
+      <p className="text-[11px] leading-none text-text-muted">{label}</p>
+      <p className="mt-1 font-mono text-sm font-semibold leading-none text-text-primary">
         {value}
       </p>
     </div>
