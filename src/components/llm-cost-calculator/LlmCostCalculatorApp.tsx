@@ -335,45 +335,32 @@ export default function LlmCostCalculatorApp() {
         </div>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,0.78fr)_minmax(24rem,1fr)]">
-        <div className={`${panelClass} p-5 sm:p-6`}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-            Storage
-          </p>
-          <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
-            Local model library
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed text-text-muted">
-            Default model pricing can be edited as a local override. Custom
-            models and edits can be cleared with browser site data.
-          </p>
-
-          <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border-card pt-5">
-            <LibraryStat label="Built in" value={DEFAULT_LLM_MODELS.length} />
-            <LibraryStat
-              label="Custom"
-              value={preferences.customModels.length}
-            />
+      <section className={`${panelClass} p-5 sm:p-6`}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+              Pricing
+            </p>
+            <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
+              Model pricing
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-text-muted">
+              Add a custom model or edit pricing for the selected model in a
+              focused dialog.
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={openAddModel}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md border border-accent-teal/30 bg-accent-teal/10 px-3 py-2 text-sm font-medium text-accent-teal transition-colors hover:bg-accent-teal/15"
+          >
+            <PlusIcon />
+            Add model
+          </button>
         </div>
 
-        <div className={`${panelClass} p-5 sm:p-6`}>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                Pricing
-              </p>
-              <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
-                Model pricing
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-text-muted">
-                Add a custom model or edit pricing for the selected model in a
-                focused dialog.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-md border border-border-card bg-bg-secondary/45 p-4">
+        <div className="mt-5 flex flex-col gap-4 rounded-md border border-border-card bg-bg-secondary/45 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <p className="text-xs font-medium text-text-muted">
               Selected model
             </p>
@@ -388,32 +375,21 @@ export default function LlmCostCalculatorApp() {
               </p>
             )}
           </div>
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={openAddModel}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-accent-teal/30 bg-accent-teal/10 px-3 py-2 text-sm font-medium text-accent-teal transition-colors hover:bg-accent-teal/15"
-            >
-              <PlusIcon />
-              Add model
-            </button>
-            <button
-              type="button"
-              onClick={openEditModel}
-              disabled={!selectedModel}
-              className={quietButtonClass}
-            >
-              Edit model
-            </button>
-          </div>
-
-          {notice && (
-            <p className="mt-4 rounded-md border border-accent-green/20 bg-accent-green/10 px-3 py-2 text-sm text-accent-green">
-              {notice}
-            </p>
-          )}
+          <button
+            type="button"
+            onClick={openEditModel}
+            disabled={!selectedModel}
+            className={`${quietButtonClass} shrink-0`}
+          >
+            Edit model
+          </button>
         </div>
+
+        {notice && (
+          <p className="mt-4 rounded-md border border-accent-green/20 bg-accent-green/10 px-3 py-2 text-sm text-accent-green">
+            {notice}
+          </p>
+        )}
       </section>
 
       <ModelPricingModal
@@ -674,17 +650,6 @@ function CostRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between border-t border-border-card pt-3 text-sm">
       <span className="text-text-muted">{label}</span>
       <span className="font-mono font-semibold text-text-primary">{value}</span>
-    </div>
-  );
-}
-
-function LibraryStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <p className="font-display text-2xl font-semibold text-text-primary">
-        {value}
-      </p>
-      <p className="mt-1 text-xs text-text-muted">{label}</p>
     </div>
   );
 }
