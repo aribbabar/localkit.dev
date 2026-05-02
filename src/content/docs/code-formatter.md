@@ -64,13 +64,17 @@ All formatting happens locally in your browser. Your code is never sent to any s
 ## FAQs
 
 ### Why are there two formatting engines?
+
 Prettier is the gold standard for web languages but doesn't support C-family languages. Clang-format is the standard formatter for C/C++/Java/C#. Using both gives you the best formatter for each language.
 
 ### Can I customize the formatting style?
+
 Yes — you can adjust tab size, print width, quote style (single vs. double), and other options. These map to Prettier and Clang-format configuration options under the hood.
 
 ### Does it auto-detect the language?
+
 Not currently — you need to select the language from the dropdown. Auto-detection based on syntax patterns is planned for a future update.
 
 ### How does the image export work?
+
 The formatted, syntax-highlighted code is captured as a PNG screenshot using the html-to-image library. This renders the DOM element to a canvas and exports it as an image — useful for sharing code snippets on social media or in presentations.

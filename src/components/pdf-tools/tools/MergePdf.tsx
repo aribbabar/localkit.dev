@@ -53,7 +53,7 @@ export default function MergePdf() {
     try {
       const { mergePdfs } = await getMupdf();
       const merged = await mergePdfs(files, (done, total) =>
-        setProgress({ done, total })
+        setProgress({ done, total }),
       );
       setResult(merged);
     } catch (err: any) {

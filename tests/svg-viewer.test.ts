@@ -8,12 +8,18 @@ const SVG_DIR = path.join(__dirname, "svg");
 describe("SVG Viewer Tests", () => {
   describe("hasAnimation", () => {
     it("should detect animations in sample1.svg", () => {
-      const sample1 = fs.readFileSync(path.join(SVG_DIR, "sample1.svg"), "utf8");
+      const sample1 = fs.readFileSync(
+        path.join(SVG_DIR, "sample1.svg"),
+        "utf8",
+      );
       expect(hasAnimation(sample1)).toBe(true);
     });
 
     it("should detect animations in sample2.svg", () => {
-      const sample2 = fs.readFileSync(path.join(SVG_DIR, "sample2.svg"), "utf8");
+      const sample2 = fs.readFileSync(
+        path.join(SVG_DIR, "sample2.svg"),
+        "utf8",
+      );
       expect(hasAnimation(sample2)).toBe(true);
     });
 
@@ -46,7 +52,7 @@ describe("SVG Viewer Tests", () => {
                 return str.includes("INVALID") ? {} : null; // Mock parsererror element if string contains INVALID
               }
               return null;
-            }
+            },
           };
         }
       } as any;

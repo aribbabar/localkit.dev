@@ -43,7 +43,9 @@ function preprocessHtml(html: string, options: HtmlToMdOptions): string {
 
   if (options.stripStyles) {
     doc.querySelectorAll("style").forEach((el) => el.remove());
-    doc.querySelectorAll("[style]").forEach((el) => el.removeAttribute("style"));
+    doc
+      .querySelectorAll("[style]")
+      .forEach((el) => el.removeAttribute("style"));
   }
 
   if (options.stripImages) {
@@ -57,7 +59,10 @@ function preprocessHtml(html: string, options: HtmlToMdOptions): string {
 /*  Public API                                                         */
 /* ------------------------------------------------------------------ */
 
-export function convertHtmlToMarkdown(html: string, options: HtmlToMdOptions): string {
+export function convertHtmlToMarkdown(
+  html: string,
+  options: HtmlToMdOptions,
+): string {
   const cleaned = preprocessHtml(html, options);
 
   const service = new TurndownService({

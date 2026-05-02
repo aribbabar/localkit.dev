@@ -6,18 +6,26 @@ import path from "path";
 const originalFetch = global.fetch;
 global.fetch = async (url: string | URL | Request, options?: RequestInit) => {
   const urlStr = url.toString();
-  if (urlStr.endsWith('magick.wasm')) {
-    const wasmPath = path.resolve(process.cwd(), urlStr.replace(/^\//, ''));
+  if (urlStr.endsWith("magick.wasm")) {
+    const wasmPath = path.resolve(process.cwd(), urlStr.replace(/^\//, ""));
     const buffer = fs.readFileSync(wasmPath);
     return new Response(buffer);
   }
   return originalFetch(url, options);
 };
 
-import { convertImage, estimateOutputSize, getImageInfo, SUPPORTED_FORMATS, type ImageInfo } from "../src/lib/imagemagick";
+import {
+  convertImage,
+  estimateOutputSize,
+  getImageInfo,
+  SUPPORTED_FORMATS,
+  type ImageInfo,
+} from "../src/lib/imagemagick";
 
 const IMAGES_DIR = path.join(__dirname, "images");
-const files = fs.readdirSync(IMAGES_DIR).filter((f) => fs.statSync(path.join(IMAGES_DIR, f)).isFile());
+const files = fs
+  .readdirSync(IMAGES_DIR)
+  .filter((f) => fs.statSync(path.join(IMAGES_DIR, f)).isFile());
 
 function createFixtureFile(filename: string) {
   const filePath = path.join(IMAGES_DIR, filename);
@@ -28,7 +36,7 @@ function createFixtureFile(filename: string) {
 function legacyEstimateOutputSize(
   info: ImageInfo,
   targetFormat: string,
-  options: { quality?: number; resize?: string } = {}
+  options: { quality?: number; resize?: string } = {},
 ): number | null {
   const ext = targetFormat.toLowerCase();
   let w = info.width;
@@ -54,7 +62,10 @@ function legacyEstimateOutputSize(
     case "png":
       return Math.round(pixels * info.channels * 0.45);
     case "jpg": {
-      const q = typeof options.quality === "number" ? Math.max(1, Math.min(100, options.quality)) : 90;
+      const q =
+        typeof options.quality === "number"
+          ? Math.max(1, Math.min(100, options.quality))
+          : 90;
       return Math.round(pixels * (0.04 + (q / 100) * 0.56));
     }
     default:
@@ -75,21 +86,25 @@ describe("Image Conversion Tests", () => {
         it(`should convert ${filename} to ${target.ext.toUpperCase()}`, async () => {
           try {
             // ICO requires dimensions to be <= 256
-            const options = target.ext === 'ico' ? { resize: "256x256>" } : {};
+            const options = target.ext === "ico" ? { resize: "256x256>" } : {};
             const result = await convertImage(file, target.ext, options);
             expect(result).toBeDefined();
-            expect(result.name).toBe(`${path.parse(filename).name}.${target.ext}`);
+            expect(result.name).toBe(
+              `${path.parse(filename).name}.${target.ext}`,
+            );
             expect(result.blob).toBeInstanceOf(Blob);
             expect(result.buffer).toBeInstanceOf(ArrayBuffer);
             expect(result.buffer.byteLength).toBeGreaterThan(0);
           } catch (error: any) {
             const msg = error.message;
             if (
-              msg.includes("unsupported output format") || 
-              msg.includes("is not available in this browser build") || 
+              msg.includes("unsupported output format") ||
+              msg.includes("is not available in this browser build") ||
               msg.includes("not available")
             ) {
-              console.log(`Expected skip: ${filename} to ${target.ext} (${msg})`);
+              console.log(
+                `Expected skip: ${filename} to ${target.ext} (${msg})`,
+              );
               return;
             }
             if (msg.includes("NoDecodeDelegateForThisImageFormat")) {
@@ -114,7 +129,9 @@ describe("Image Size Estimation", () => {
 
     expect(estimate).not.toBeNull();
     expect(legacy).not.toBeNull();
-    expect(relativeError(estimate!, actual)).toBeLessThan(relativeError(legacy!, actual));
+    expect(relativeError(estimate!, actual)).toBeLessThan(
+      relativeError(legacy!, actual),
+    );
     expect(relativeError(estimate!, actual)).toBeLessThan(0.4);
   });
 
@@ -122,9 +139,16 @@ describe("Image Size Estimation", () => {
     const file = createFixtureFile("PNG.png");
     const info = await getImageInfo(file);
 
-    const highQualityEstimate = await estimateOutputSize(file, info, "jpg", { quality: 90 });
-    const lowQualityEstimate = await estimateOutputSize(file, info, "jpg", { quality: 45 });
-    const resizedEstimate = await estimateOutputSize(file, info, "jpg", { quality: 90, resize: "50%" });
+    const highQualityEstimate = await estimateOutputSize(file, info, "jpg", {
+      quality: 90,
+    });
+    const lowQualityEstimate = await estimateOutputSize(file, info, "jpg", {
+      quality: 45,
+    });
+    const resizedEstimate = await estimateOutputSize(file, info, "jpg", {
+      quality: 90,
+      resize: "50%",
+    });
 
     expect(highQualityEstimate).not.toBeNull();
     expect(lowQualityEstimate).not.toBeNull();

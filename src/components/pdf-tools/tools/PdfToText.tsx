@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  PdfDropZone,
-  ActionButton,
-  downloadBlob,
-  formatSize,
-} from "../shared";
+import { PdfDropZone, ActionButton, downloadBlob, formatSize } from "../shared";
 
 let mupdfLib: typeof import("../../../lib/mupdf") | null = null;
 async function getMupdf() {
@@ -92,7 +87,9 @@ export default function PdfToText() {
     if (!extractedText || !file) return;
     const ext = outputMode === "html" ? "html" : "txt";
     const mime =
-      outputMode === "html" ? "text/html;charset=utf-8" : "text/plain;charset=utf-8";
+      outputMode === "html"
+        ? "text/html;charset=utf-8"
+        : "text/plain;charset=utf-8";
     const baseName = file.name.replace(/\.pdf$/i, "");
     const blob = new Blob([extractedText], { type: mime });
     downloadBlob(blob, `${baseName}.${ext}`);
@@ -165,8 +162,7 @@ export default function PdfToText() {
                   htmlFor="text-page-range"
                   className="mb-1.5 block text-xs font-medium text-text-secondary"
                 >
-                  Page Range{" "}
-                  <span className="text-text-muted">(optional)</span>
+                  Page Range <span className="text-text-muted">(optional)</span>
                 </label>
                 <input
                   type="text"

@@ -35,12 +35,7 @@ function sanitizePotrace(value: unknown): PotraceOptions {
     turnpolicy: clamp(candidate.turnpolicy, 0, 6, defaults.turnpolicy),
     alphamax: clamp(candidate.alphamax, 0, 1.34, defaults.alphamax),
     opticurve: candidate.opticurve === 0 ? 0 : 1,
-    opttolerance: clamp(
-      candidate.opttolerance,
-      0,
-      1,
-      defaults.opttolerance,
-    ),
+    opttolerance: clamp(candidate.opttolerance, 0, 1, defaults.opttolerance),
     extractcolors:
       typeof candidate.extractcolors === "boolean"
         ? candidate.extractcolors

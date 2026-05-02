@@ -29,9 +29,24 @@ interface ScenarioDerivedState {
 }
 
 const SCHEDULE_PRESETS: SchedulePreset[] = [
-  { id: "full-time", label: "Full-time 40x52", hoursPerWeek: "40", weeksPerYear: "52" },
-  { id: "part-time", label: "Part-time 20x52", hoursPerWeek: "20", weeksPerYear: "52" },
-  { id: "contract", label: "Contract 40x50", hoursPerWeek: "40", weeksPerYear: "50" },
+  {
+    id: "full-time",
+    label: "Full-time 40x52",
+    hoursPerWeek: "40",
+    weeksPerYear: "52",
+  },
+  {
+    id: "part-time",
+    label: "Part-time 20x52",
+    hoursPerWeek: "20",
+    weeksPerYear: "52",
+  },
+  {
+    id: "contract",
+    label: "Contract 40x50",
+    hoursPerWeek: "40",
+    weeksPerYear: "50",
+  },
 ];
 
 const INPUT_LABELS: Record<PayInputMode, string> = {
@@ -120,10 +135,10 @@ function deriveScenarioState(
   }
 
   if (
-    errors.length > 0
-    || amount === null
-    || hoursPerWeek === null
-    || weeksPerYear === null
+    errors.length > 0 ||
+    amount === null ||
+    hoursPerWeek === null ||
+    weeksPerYear === null
   ) {
     return {
       breakdown: null,
@@ -296,8 +311,8 @@ export default function PayCalculatorApp() {
     setCompareMode((previous) => {
       const nextValue = !previous;
       if (
-        nextValue
-        && areScenariosEqual(
+        nextValue &&
+        areScenariosEqual(
           scenarioB,
           DEFAULT_PAY_CALCULATOR_PREFERENCES.scenarioB,
         )
@@ -523,12 +538,14 @@ function ScenarioPanel({
       ? {
           badge: "border-accent-blue/20 bg-accent-blue/10 text-accent-blue",
           active: "border-accent-blue/35 bg-accent-blue/10",
-          button: "border-accent-blue/25 text-accent-blue hover:bg-accent-blue/10",
+          button:
+            "border-accent-blue/25 text-accent-blue hover:bg-accent-blue/10",
         }
       : {
           badge: "border-accent-teal/20 bg-accent-teal/10 text-accent-teal",
           active: "border-accent-teal/35 bg-accent-teal/10",
-          button: "border-accent-teal/25 text-accent-teal hover:bg-accent-teal/10",
+          button:
+            "border-accent-teal/25 text-accent-teal hover:bg-accent-teal/10",
         };
 
   return (
@@ -612,7 +629,9 @@ function ScenarioPanel({
 
           <button
             type="button"
-            onClick={() => onFieldChange("overtimeEnabled", !scenario.overtimeEnabled)}
+            onClick={() =>
+              onFieldChange("overtimeEnabled", !scenario.overtimeEnabled)
+            }
             className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
               scenario.overtimeEnabled
                 ? accent.badge
@@ -781,13 +800,7 @@ function ResultStat({
   );
 }
 
-function DeltaStat({
-  label,
-  value,
-}: {
-  label: string;
-  value: number;
-}) {
+function DeltaStat({ label, value }: { label: string; value: number }) {
   const isPositive = value > 0;
   const isNegative = value < 0;
 
@@ -822,9 +835,7 @@ function ToggleGlyph({ enabled }: { enabled: boolean }) {
     >
       <span
         className={`absolute h-3.5 w-3.5 rounded-full transition-transform ${
-          enabled
-            ? "translate-x-4 bg-current"
-            : "translate-x-0.5 bg-text-muted"
+          enabled ? "translate-x-4 bg-current" : "translate-x-0.5 bg-text-muted"
         }`}
       />
     </span>

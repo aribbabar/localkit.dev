@@ -37,7 +37,10 @@ export function lineCount(source: string): number {
 }
 
 /** Wrap rendered HTML in a minimal standalone document. */
-export function wrapHtmlDocument(html: string, title = "Markdown Preview"): string {
+export function wrapHtmlDocument(
+  html: string,
+  title = "Markdown Preview",
+): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>

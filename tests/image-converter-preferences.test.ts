@@ -16,7 +16,7 @@ describe("image converter preferences", () => {
           quality: 80,
           resize: "100x100",
           stripMetadata: true,
-        })
+        }),
       ),
       setItem: vi.fn(),
     };
@@ -35,7 +35,9 @@ describe("image converter preferences", () => {
       setItem: vi.fn(),
     };
 
-    expect(loadImageConverterPreferences(storage)).toEqual(DEFAULT_IMAGE_CONVERTER_PREFERENCES);
+    expect(loadImageConverterPreferences(storage)).toEqual(
+      DEFAULT_IMAGE_CONVERTER_PREFERENCES,
+    );
   });
 
   it("sanitizes invalid preference values", () => {
@@ -45,7 +47,7 @@ describe("image converter preferences", () => {
         quality: 1000,
         resize: 42,
         stripMetadata: "yes",
-      })
+      }),
     ).toEqual({
       outputFormat: "ico",
       quality: 100,
@@ -67,7 +69,7 @@ describe("image converter preferences", () => {
         resize: "50%",
         stripMetadata: true,
       },
-      storage
+      storage,
     );
 
     expect(storage.setItem).toHaveBeenCalledWith(
@@ -77,7 +79,7 @@ describe("image converter preferences", () => {
         quality: 1,
         resize: "50%",
         stripMetadata: true,
-      })
+      }),
     );
   });
 });

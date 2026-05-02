@@ -55,10 +55,13 @@ SVG files can contain embedded scripts and external resource references. The vie
 ## FAQs
 
 ### Can SVG files contain malicious code?
+
 Yes — SVGs can contain JavaScript in `<script>` tags or event handlers. The viewer renders SVGs in a sandboxed iframe that blocks script execution, making it safe to preview untrusted SVGs.
 
 ### Why does my SVG look different here vs. in my editor?
+
 Different renderers may interpret SVG slightly differently, especially around font rendering and filter effects. The viewer uses your browser's native SVG engine, which is the same engine that will render the SVG on the web.
 
 ### Can I export the SVG as a PNG?
+
 Not currently. For raster conversion, use the [Image Converter](/tools/image-converter/) tool which can convert SVG to PNG and other formats.

@@ -52,10 +52,13 @@ All conversion happens locally. File paths can sometimes reveal directory struct
 ## FAQs
 
 ### Does it handle UNC paths?
+
 Yes — Windows UNC paths like `\\server\share\folder` are preserved correctly when converting. The leading `\\` is maintained.
 
 ### Does it handle mixed slashes?
+
 Yes — paths with mixed separators (e.g., `C:\Users/name/Documents\file.txt`) are normalized to a consistent format in both output variants.
 
 ### Does it handle drive letters?
+
 Yes — Windows drive letters like `C:\` are preserved in the Windows format and converted to `/c/` or similar in the Unix format.

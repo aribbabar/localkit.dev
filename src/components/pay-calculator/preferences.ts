@@ -54,7 +54,10 @@ function sanitizeNumericString(
   return formatStoredNumber(parsed);
 }
 
-function sanitizeInputMode(value: unknown, fallback: PayInputMode): PayInputMode {
+function sanitizeInputMode(
+  value: unknown,
+  fallback: PayInputMode,
+): PayInputMode {
   return value === "hourly" || value === "annual" ? value : fallback;
 }
 
@@ -93,32 +96,32 @@ function reconcileScenario(
   if (lastEdited === "annual" && annualPay === null && hourlyPay !== null) {
     lastEdited = "hourly";
   } else if (
-    lastEdited === "hourly"
-    && hourlyPay === null
-    && annualPay !== null
+    lastEdited === "hourly" &&
+    hourlyPay === null &&
+    annualPay !== null
   ) {
     lastEdited = "annual";
   }
 
   const canConvert =
-    hoursPerWeek !== null
-    && hoursPerWeek > 0
-    && weeksPerYear !== null
-    && weeksPerYear > 0
-    && (!scenario.overtimeEnabled
-      || (overtimeHoursPerWeek !== null
-        && overtimeMultiplier !== null
-        && overtimeMultiplier >= 1));
+    hoursPerWeek !== null &&
+    hoursPerWeek > 0 &&
+    weeksPerYear !== null &&
+    weeksPerYear > 0 &&
+    (!scenario.overtimeEnabled ||
+      (overtimeHoursPerWeek !== null &&
+        overtimeMultiplier !== null &&
+        overtimeMultiplier >= 1));
 
   let nextAnnualPay = scenario.annualPay;
   let nextHourlyPay = scenario.hourlyPay;
 
   if (canConvert) {
     const resolvedOvertimeHours = scenario.overtimeEnabled
-      ? overtimeHoursPerWeek ?? 0
+      ? (overtimeHoursPerWeek ?? 0)
       : 0;
     const resolvedOvertimeMultiplier = scenario.overtimeEnabled
-      ? overtimeMultiplier ?? 1.5
+      ? (overtimeMultiplier ?? 1.5)
       : 1.5;
 
     if (lastEdited === "annual" && annualPay !== null) {

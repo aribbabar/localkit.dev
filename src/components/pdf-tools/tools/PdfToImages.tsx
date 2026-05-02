@@ -83,7 +83,7 @@ export default function PdfToImages() {
         dpi,
         quality,
         indices,
-        (done, total) => setProgress({ done, total })
+        (done, total) => setProgress({ done, total }),
       );
       setResults(output);
     } catch (err: any) {
@@ -227,8 +227,7 @@ export default function PdfToImages() {
                   htmlFor="page-range"
                   className="mb-1.5 block text-xs font-medium text-text-secondary"
                 >
-                  Page Range{" "}
-                  <span className="text-text-muted">(optional)</span>
+                  Page Range <span className="text-text-muted">(optional)</span>
                 </label>
                 <input
                   type="text"

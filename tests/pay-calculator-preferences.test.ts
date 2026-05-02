@@ -33,7 +33,7 @@ describe("pay calculator preferences", () => {
             overtimeMultiplier: "2",
             lastEdited: "hourly",
           },
-        })
+        }),
       ),
       setItem: vi.fn(),
     };

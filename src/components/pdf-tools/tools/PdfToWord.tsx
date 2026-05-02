@@ -131,8 +131,7 @@ export default function PdfToWord() {
                 htmlFor="word-page-range"
                 className="mb-1.5 block text-xs font-medium text-text-secondary"
               >
-                Page Range{" "}
-                <span className="text-text-muted">(optional)</span>
+                Page Range <span className="text-text-muted">(optional)</span>
               </label>
               <input
                 type="text"

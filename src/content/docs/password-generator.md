@@ -50,17 +50,20 @@ Password generation is entirely local. The Web Crypto API provides cryptographic
 
 - **No WASM, no libraries** — Pure browser APIs
 - **RNG**: `crypto.getRandomValues()` (CSPRNG)
-- **Character sets**: Uppercase (A-Z), lowercase (a-z), digits (0-9), symbols (!@#$%^&*...)
+- **Character sets**: Uppercase (A-Z), lowercase (a-z), digits (0-9), symbols (!@#$%^&\*...)
 - **Entropy calculation**: `log2(poolSize ^ length)` bits
 - **Browser support**: All modern browsers (Web Crypto API is universally supported)
 
 ## FAQs
 
 ### Is `crypto.getRandomValues()` truly random?
+
 Yes — it's a cryptographically secure pseudo-random number generator (CSPRNG) that draws entropy from the operating system. It's the same API used by password managers and cryptographic libraries in the browser.
 
 ### What makes a password "strong"?
+
 Password strength is measured in bits of entropy. A password with 80+ bits of entropy (e.g., 14+ characters with mixed types) is considered very strong. The strength indicator reflects this calculation.
 
 ### Should I use symbols in my passwords?
+
 Symbols increase the character pool size, boosting entropy per character. However, some systems restrict which symbols are allowed. If a site rejects your password, try generating one without symbols or with a longer length to compensate.

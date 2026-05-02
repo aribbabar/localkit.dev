@@ -24,15 +24,21 @@ describe("PDF Tools", () => {
 
   beforeAll(() => {
     const buffer1 = fs.readFileSync(sample1Path);
-    sample1File = new File([buffer1], "sample1.pdf", { type: "application/pdf" });
+    sample1File = new File([buffer1], "sample1.pdf", {
+      type: "application/pdf",
+    });
 
     const buffer2 = fs.readFileSync(sample2Path);
-    sample2File = new File([buffer2], "sample2.pdf", { type: "application/pdf" });
+    sample2File = new File([buffer2], "sample2.pdf", {
+      type: "application/pdf",
+    });
   });
 
   describe("Utility functions", () => {
     it("should parse page ranges correctly", () => {
-      expect(parsePageRange("1-3, 5, 7-10", 15)).toEqual([0, 1, 2, 4, 6, 7, 8, 9]);
+      expect(parsePageRange("1-3, 5, 7-10", 15)).toEqual([
+        0, 1, 2, 4, 6, 7, 8, 9,
+      ]);
       expect(parsePageRange("2", 5)).toEqual([1]);
       expect(parsePageRange("4-2", 5)).toEqual([]); // invalid range
     });
@@ -83,8 +89,10 @@ describe("PDF Tools", () => {
       expect(merged.name).toBe("merged.pdf");
       expect(merged.blob.type).toBe("application/pdf");
       expect(merged.buffer.byteLength).toBeGreaterThan(0);
-      
-      const mergedFile = new File([merged.buffer], "merged.pdf", { type: "application/pdf" });
+
+      const mergedFile = new File([merged.buffer], "merged.pdf", {
+        type: "application/pdf",
+      });
       const info1 = await getPdfInfo(sample1File);
       const info2 = await getPdfInfo(sample2File);
       const mergedInfo = await getPdfInfo(mergedFile);
@@ -106,8 +114,10 @@ describe("PDF Tools", () => {
       const extracted = await extractPages(sample1File, [0]);
       expect(extracted.name).toMatch(/extracted\.pdf$/);
       expect(extracted.blob.type).toBe("application/pdf");
-      
-      const extractedFile = new File([extracted.buffer], "extracted.pdf", { type: "application/pdf" });
+
+      const extractedFile = new File([extracted.buffer], "extracted.pdf", {
+        type: "application/pdf",
+      });
       const info = await getPdfInfo(extractedFile);
       expect(info.pageCount).toBe(1);
     });

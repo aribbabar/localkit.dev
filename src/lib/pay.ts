@@ -35,8 +35,8 @@ function resolveOvertime(
   overtimeHoursPerWeek: number | undefined,
   overtimeMultiplier: number | undefined,
 ) {
-  const hours = overtimeEnabled ? overtimeHoursPerWeek ?? 0 : 0;
-  const multiplier = overtimeEnabled ? overtimeMultiplier ?? 1.5 : 1.5;
+  const hours = overtimeEnabled ? (overtimeHoursPerWeek ?? 0) : 0;
+  const multiplier = overtimeEnabled ? (overtimeMultiplier ?? 1.5) : 1.5;
   return { hours, multiplier };
 }
 
@@ -140,9 +140,13 @@ export function derivePayBreakdown(input: PayScenario): PayBreakdown | null {
     input.hoursPerWeek + overtime.hours * overtime.multiplier;
 
   const annual =
-    input.inputMode === "hourly" ? input.amount * annualWeightedHours : input.amount;
+    input.inputMode === "hourly"
+      ? input.amount * annualWeightedHours
+      : input.amount;
   const hourly =
-    input.inputMode === "annual" ? input.amount / annualWeightedHours : input.amount;
+    input.inputMode === "annual"
+      ? input.amount / annualWeightedHours
+      : input.amount;
 
   return {
     annual,

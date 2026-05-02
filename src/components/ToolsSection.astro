@@ -8,6 +8,7 @@ import {
   FileText,
   Shield,
   Wrench,
+  Search,
 } from "@lucide/astro";
 
 const categories = [
@@ -20,13 +21,19 @@ const categories = [
 ];
 
 const categoryIconMap: Record<string, any> = {
-  LayoutGrid, ImageIcon, Video, FileText, Shield, Wrench,
+  LayoutGrid,
+  ImageIcon,
+  Video,
+  FileText,
+  Shield,
+  Wrench,
 };
 
 const tools = [
   {
     title: "Image Converter",
-    description: "Batch convert images between PNG, JPG, GIF, BMP, TIFF, and more formats.",
+    description:
+      "Batch convert images between PNG, JPG, GIF, BMP, TIFF, and more formats.",
     icon: "Image",
     accentColor: "purple",
     category: "image",
@@ -34,7 +41,8 @@ const tools = [
   },
   {
     title: "Video Converter",
-    description: "Batch convert videos between MP4, WebM, AVI, MKV, MOV, and more using FFmpeg.",
+    description:
+      "Batch convert videos between MP4, WebM, AVI, MKV, MOV, and more using FFmpeg.",
     icon: "Video",
     accentColor: "blue",
     category: "video",
@@ -42,7 +50,8 @@ const tools = [
   },
   {
     title: "PDF Tools",
-    description: "Merge, split, compress, extract pages, and convert PDFs to images or text.",
+    description:
+      "Merge, split, compress, extract pages, and convert PDFs to images or text.",
     icon: "FileType",
     accentColor: "red",
     category: "document",
@@ -50,7 +59,8 @@ const tools = [
   },
   {
     title: "Info Redactor",
-    description: "Securely redact sensitive data from documents or images before sharing.",
+    description:
+      "Securely redact sensitive data from documents or images before sharing.",
     icon: "ShieldCheck",
     accentColor: "indigo",
     category: "security",
@@ -58,7 +68,8 @@ const tools = [
   },
   {
     title: "Path Converter",
-    description: "Convert file paths between forward slashes and backslashes instantly.",
+    description:
+      "Convert file paths between forward slashes and backslashes instantly.",
     icon: "Route",
     accentColor: "teal",
     category: "tool",
@@ -66,7 +77,8 @@ const tools = [
   },
   {
     title: "Pay Calculator",
-    description: "Convert hourly and annual pay, compare two offers, and save your schedule assumptions locally.",
+    description:
+      "Convert hourly and annual pay, compare two offers, and save your schedule assumptions locally.",
     icon: "Calculator",
     accentColor: "teal",
     category: "tool",
@@ -74,7 +86,8 @@ const tools = [
   },
   {
     title: "LLM Cost Calculator",
-    description: "Estimate LLM token spend, edit model pricing, and save custom models locally.",
+    description:
+      "Estimate LLM token spend, edit model pricing, and save custom models locally.",
     icon: "Calculator",
     accentColor: "teal",
     category: "tool",
@@ -82,7 +95,8 @@ const tools = [
   },
   {
     title: "SVG Viewer",
-    description: "Preview SVG code with live rendering, animation playback, zoom, and background modes.",
+    description:
+      "Preview SVG code with live rendering, animation playback, zoom, and background modes.",
     icon: "Eye",
     accentColor: "cyan",
     category: "image",
@@ -90,7 +104,8 @@ const tools = [
   },
   {
     title: "SVG Optimizer",
-    description: "Optimize SVG files with svgtidy to strip redundant markup, metadata, and hidden nodes.",
+    description:
+      "Optimize SVG files with svgtidy to strip redundant markup, metadata, and hidden nodes.",
     icon: "FileCode",
     accentColor: "cyan",
     category: "image",
@@ -98,7 +113,8 @@ const tools = [
   },
   {
     title: "Code Formatter",
-    description: "Format and beautify 25+ languages — JS, TS, HTML, CSS, C/C++, Java, C#, and more.",
+    description:
+      "Format and beautify 25+ languages — JS, TS, HTML, CSS, C/C++, Java, C#, and more.",
     icon: "Code",
     accentColor: "teal",
     category: "tool",
@@ -106,7 +122,8 @@ const tools = [
   },
   {
     title: "Image Metadata",
-    description: "View, edit, and strip EXIF, GPS, IPTC, and XMP metadata from images.",
+    description:
+      "View, edit, and strip EXIF, GPS, IPTC, and XMP metadata from images.",
     icon: "ScanSearch",
     accentColor: "purple",
     category: "image",
@@ -122,7 +139,8 @@ const tools = [
   },
   {
     title: "Paragraph Generator",
-    description: "Generate lorem ipsum or realistic fake paragraphs with saved local preferences.",
+    description:
+      "Generate lorem ipsum or realistic fake paragraphs with saved local preferences.",
     icon: "FileText",
     accentColor: "cyan",
     category: "document",
@@ -130,7 +148,8 @@ const tools = [
   },
   {
     title: "Password Generator",
-    description: "Generate strong, random passwords with customizable length and character options.",
+    description:
+      "Generate strong, random passwords with customizable length and character options.",
     icon: "KeyRound",
     accentColor: "indigo",
     category: "security",
@@ -138,7 +157,8 @@ const tools = [
   },
   {
     title: "HTML to Markdown",
-    description: "Convert HTML to clean Markdown with stripping options and GFM support.",
+    description:
+      "Convert HTML to clean Markdown with stripping options and GFM support.",
     icon: "FileCode",
     accentColor: "orange",
     category: "document",
@@ -146,7 +166,8 @@ const tools = [
   },
   {
     title: "Image to SVG",
-    description: "Convert raster images to scalable SVG vector graphics with Potrace, entirely in your browser.",
+    description:
+      "Convert raster images to scalable SVG vector graphics with Potrace, entirely in your browser.",
     icon: "Sparkles",
     accentColor: "purple",
     category: "image",
@@ -159,40 +180,78 @@ const tools = [
   <div class="mx-auto max-w-7xl px-6">
     <h2 class="sr-only">Tools</h2>
 
-    <!-- Category Filter Tabs -->
-    <div class="mb-10 flex flex-wrap items-center gap-2" id="filter-tabs">
-      {categories.map((cat, i) => {
-        const CatIcon = categoryIconMap[cat.icon];
-        return (
-          <button
-            data-category={cat.id}
-            class:list={[
-              "filter-tab inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200",
-              i === 0
-                ? "bg-bg-card border border-border-card-hover text-text-primary"
-                : "border border-transparent text-text-muted hover:text-text-secondary hover:border-border-card",
-            ]}
+    <!-- Search and category filters -->
+    <div class="mb-10 flex flex-col gap-4">
+      <div class="relative w-full group">
+        <div
+          class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5"
+        >
+          <Search
+            size={16}
+            class="text-text-muted transition-colors group-focus-within:text-text-secondary"
+          />
+        </div>
+        <input
+          id="search-input"
+          type="text"
+          aria-label="Search tools"
+          placeholder="Search tools and features..."
+          class="w-full rounded-lg border border-border-card bg-bg-secondary py-3 pl-10 pr-20 text-sm text-text-primary placeholder:text-text-muted outline-none transition-all focus:border-border-card-hover focus:ring-1 focus:ring-border-card-hover"
+        />
+        <div
+          class="pointer-events-none absolute inset-y-0 right-0 hidden items-center pr-3 sm:flex"
+        >
+          <kbd
+            class="rounded border border-border-card bg-bg-primary px-1.5 py-0.5 font-mono text-[10px] text-text-muted"
           >
-            {CatIcon && <CatIcon size={14} />}
-            {cat.label}
-          </button>
-        );
-      })}
+            Ctrl K
+          </kbd>
+        </div>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div class="flex flex-wrap items-center gap-2" id="filter-tabs">
+        {
+          categories.map((cat, i) => {
+            const CatIcon = categoryIconMap[cat.icon];
+            return (
+              <button
+                data-category={cat.id}
+                class:list={[
+                  "filter-tab inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200",
+                  i === 0
+                    ? "bg-bg-card border border-border-card-hover text-text-primary"
+                    : "border border-transparent text-text-muted hover:text-text-secondary hover:border-border-card",
+                ]}
+              >
+                {CatIcon && <CatIcon size={14} />}
+                {cat.label}
+              </button>
+            );
+          })
+        }
+      </div>
     </div>
 
     <!-- Tools Grid -->
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" id="tools-grid">
-      {tools.map((tool) => (
-        <div data-category={tool.category} data-title={tool.title.toLowerCase()} data-description={tool.description.toLowerCase()}>
-          <ToolCard
-            title={tool.title}
-            description={tool.description}
-            icon={tool.icon}
-            accentColor={tool.accentColor}
-            href={tool.href}
-          />
-        </div>
-      ))}
+      {
+        tools.map((tool) => (
+          <div
+            data-category={tool.category}
+            data-title={tool.title.toLowerCase()}
+            data-description={tool.description.toLowerCase()}
+          >
+            <ToolCard
+              title={tool.title}
+              description={tool.description}
+              icon={tool.icon}
+              accentColor={tool.accentColor}
+              href={tool.href}
+            />
+          </div>
+        ))
+      }
 
       <!-- Request a Tool Card -->
       <a
@@ -201,13 +260,28 @@ const tools = [
         rel="noreferrer"
         class="group flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-card p-5 text-center transition-all duration-300 hover:border-border-card-hover hover:bg-bg-card/50"
       >
-        <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-border-card bg-bg-secondary transition-colors group-hover:border-border-card-hover">
-          <svg class="h-5 w-5 text-text-muted transition-colors group-hover:text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        <div
+          class="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-border-card bg-bg-secondary transition-colors group-hover:border-border-card-hover"
+        >
+          <svg
+            class="h-5 w-5 text-text-muted transition-colors group-hover:text-text-secondary"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 4.5v15m7.5-7.5h-15"></path>
           </svg>
         </div>
-        <span class="font-display text-sm font-semibold text-text-secondary">Request a Tool</span>
-        <span class="mt-1 text-xs text-text-muted">Suggest what we should build next</span>
+        <span class="font-display text-sm font-semibold text-text-secondary"
+          >Request a Tool</span
+        >
+        <span class="mt-1 text-xs text-text-muted"
+          >Suggest what we should build next</span
+        >
       </a>
     </div>
   </div>
@@ -216,8 +290,11 @@ const tools = [
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     const tabs = document.querySelectorAll<HTMLButtonElement>(".filter-tab");
-    const cards = document.querySelectorAll<HTMLElement>("#tools-grid > [data-category]");
-    const searchInput = document.querySelector<HTMLInputElement>("#search-input");
+    const cards = document.querySelectorAll<HTMLElement>(
+      "#tools-grid > [data-category]",
+    );
+    const searchInput =
+      document.querySelector<HTMLInputElement>("#search-input");
 
     let activeCategory = "all";
 
@@ -225,10 +302,12 @@ const tools = [
       const query = (searchInput?.value ?? "").toLowerCase().trim();
 
       cards.forEach((card) => {
-        const matchesCategory = activeCategory === "all" || card.dataset.category === activeCategory;
-        const matchesSearch = !query
-          || card.dataset.title?.includes(query)
-          || card.dataset.description?.includes(query);
+        const matchesCategory =
+          activeCategory === "all" || card.dataset.category === activeCategory;
+        const matchesSearch =
+          !query ||
+          card.dataset.title?.includes(query) ||
+          card.dataset.description?.includes(query);
 
         card.style.display = matchesCategory && matchesSearch ? "" : "none";
       });
@@ -240,10 +319,18 @@ const tools = [
 
         // Update active tab styles
         tabs.forEach((t) => {
-          t.classList.remove("bg-bg-card", "border-border-card-hover", "text-text-primary");
+          t.classList.remove(
+            "bg-bg-card",
+            "border-border-card-hover",
+            "text-text-primary",
+          );
           t.classList.add("border-transparent", "text-text-muted");
         });
-        tab.classList.add("bg-bg-card", "border-border-card-hover", "text-text-primary");
+        tab.classList.add(
+          "bg-bg-card",
+          "border-border-card-hover",
+          "text-text-primary",
+        );
         tab.classList.remove("border-transparent", "text-text-muted");
 
         filterCards();

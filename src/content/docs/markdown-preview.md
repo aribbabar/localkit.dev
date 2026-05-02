@@ -55,10 +55,13 @@ All Markdown rendering happens locally in your browser. Your content is never se
 ## FAQs
 
 ### What Markdown flavor is supported?
+
 The tool supports CommonMark with GitHub Flavored Markdown (GFM) extensions. This includes tables, task lists with checkboxes, strikethrough text, autolinks, and fenced code blocks with language-specific syntax highlighting.
 
 ### Can I use this for README files?
+
 Yes — the GFM support means this tool renders Markdown the same way GitHub does, making it ideal for previewing README.md files before committing.
 
 ### Does it support LaTeX/math?
+
 Not currently. LaTeX math rendering (KaTeX or MathJax) is planned for a future update.

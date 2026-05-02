@@ -79,19 +79,25 @@ PDFs often contain sensitive information — contracts, financial documents, per
 ## FAQs
 
 ### Can I merge PDFs with different page sizes?
+
 Yes. MuPDF preserves each page's original dimensions when merging. The resulting PDF will contain pages of varying sizes, exactly as they were in the source files.
 
 ### How does PDF compression work?
+
 The compress tool re-processes the PDF through MuPDF, which can optimize object streams, remove redundant data, and recompress images. The level of compression depends on how the original PDF was created — already-optimized PDFs may see minimal size reduction.
 
 ### Is there a page limit?
+
 There's no hard limit on page count, but very large PDFs (1000+ pages) may be slow to process due to memory constraints. For best results, work with PDFs under 200 pages.
 
 ### Can I password-protect a PDF?
+
 Not currently. Password protection and encryption are planned for a future update.
 
 ### Does the text extraction preserve formatting?
+
 The HTML output mode preserves basic formatting (paragraphs, headings, font styles). Plain text mode extracts raw text without formatting. Neither mode perfectly reproduces the original layout, as PDF text extraction is inherently approximate.
 
 ### How accurate is the PDF to Word conversion?
+
 The converter preserves text content, font styles (bold, italic), font sizes, and embedded images. It maps PDF fonts to standard Word fonts (Arial, Times New Roman, Courier New) and detects headings based on font size. Complex layouts like multi-column text or precise positioning will be approximated — PDF is a fixed-layout format while Word is flow-layout. For best results, use it with text-heavy documents like reports, articles, and letters.

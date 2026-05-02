@@ -9,15 +9,27 @@ import type {
 
 type Step = "upload" | "configure" | "preview" | "done";
 
-const ENTITY_OPTIONS: { type: EntityType; label: string; description: string }[] = [
+const ENTITY_OPTIONS: {
+  type: EntityType;
+  label: string;
+  description: string;
+}[] = [
   { type: "name", label: "Names", description: "People's names" },
   { type: "email", label: "Emails", description: "Email addresses" },
   { type: "phone", label: "Phone Numbers", description: "Phone numbers" },
   { type: "ssn", label: "SSN", description: "Social Security Numbers" },
   { type: "address", label: "Addresses", description: "Street addresses" },
   { type: "url", label: "URLs", description: "Web links" },
-  { type: "organization", label: "Organizations", description: "Company & org names" },
-  { type: "location", label: "Locations", description: "Cities, countries, places" },
+  {
+    type: "organization",
+    label: "Organizations",
+    description: "Company & org names",
+  },
+  {
+    type: "location",
+    label: "Locations",
+    description: "Cities, countries, places",
+  },
 ];
 
 const ACCEPTED_EXTENSIONS = [".pdf", ".txt", ".md"];
@@ -97,13 +109,12 @@ export default function InfoRedactorApp() {
     setProcessingStatus(
       engine === "transformers"
         ? "Loading ML model (first use may take a moment)..."
-        : "Analyzing text..."
+        : "Analyzing text...",
     );
 
     try {
-      const { detectEntities, applyRedactions: applyText } = await import(
-        "../../lib/redactor"
-      );
+      const { detectEntities, applyRedactions: applyText } =
+        await import("../../lib/redactor");
       const detected = await detectEntities(extractedText, {
         engine,
         entityTypes: selectedTypes,
@@ -170,7 +181,7 @@ export default function InfoRedactorApp() {
 
   function toggleEntityType(type: EntityType) {
     setSelectedTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     );
   }
 
@@ -260,8 +271,12 @@ export default function InfoRedactorApp() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-text-primary">{file.name}</p>
-                  <p className="text-xs text-text-muted">{formatSize(file.size)}</p>
+                  <p className="text-sm font-medium text-text-primary">
+                    {file.name}
+                  </p>
+                  <p className="text-xs text-text-muted">
+                    {formatSize(file.size)}
+                  </p>
                 </div>
               </div>
               <button
@@ -296,7 +311,9 @@ export default function InfoRedactorApp() {
                   }`}
                 >
                   <p className="text-xs font-semibold">{opt.label}</p>
-                  <p className="text-[10px] text-text-muted">{opt.description}</p>
+                  <p className="text-[10px] text-text-muted">
+                    {opt.description}
+                  </p>
                 </button>
               ))}
             </div>
@@ -337,8 +354,8 @@ export default function InfoRedactorApp() {
                   </span>
                 </div>
                 <p className="pl-5 text-[10px] text-text-muted">
-                  Rule-based NLP library. Fast and runs instantly. Good for common
-                  patterns.
+                  Rule-based NLP library. Fast and runs instantly. Good for
+                  common patterns.
                 </p>
               </button>
 
@@ -381,73 +398,73 @@ export default function InfoRedactorApp() {
                 Redaction Style
               </h3>
               <p className="text-xs text-text-muted">
-                PDF redactions use black box overlay — the original text is permanently
-                removed and replaced with an opaque rectangle.
+                PDF redactions use black box overlay — the original text is
+                permanently removed and replaced with an opaque rectangle.
               </p>
             </div>
           ) : (
-          <div className="rounded-xl border border-border-card bg-bg-card p-5">
-            <h3 className="font-display mb-1 text-sm font-semibold text-text-primary">
-              Redaction Style
-            </h3>
-            <p className="mb-4 text-xs text-text-muted">
-              How redacted content should appear
-            </p>
+            <div className="rounded-xl border border-border-card bg-bg-card p-5">
+              <h3 className="font-display mb-1 text-sm font-semibold text-text-primary">
+                Redaction Style
+              </h3>
+              <p className="mb-4 text-xs text-text-muted">
+                How redacted content should appear
+              </p>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setStyle("placeholder")}
-                className={`rounded-lg border p-4 text-left transition-all ${
-                  style === "placeholder"
-                    ? "border-accent-indigo/30 bg-accent-indigo/10"
-                    : "border-border-card bg-bg-secondary hover:border-border-card-hover"
-                }`}
-              >
-                <div className="mb-2 flex items-center gap-2">
-                  <div
-                    className={`h-3 w-3 rounded-full border-2 ${
-                      style === "placeholder"
-                        ? "border-accent-indigo bg-accent-indigo"
-                        : "border-text-muted"
-                    }`}
-                  />
-                  <span className="text-xs font-semibold text-text-primary">
-                    Placeholders
-                  </span>
-                </div>
-                <p className="pl-5 font-mono text-[10px] text-text-muted">
-                  John Smith &rarr; [NAME]
-                </p>
-              </button>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setStyle("placeholder")}
+                  className={`rounded-lg border p-4 text-left transition-all ${
+                    style === "placeholder"
+                      ? "border-accent-indigo/30 bg-accent-indigo/10"
+                      : "border-border-card bg-bg-secondary hover:border-border-card-hover"
+                  }`}
+                >
+                  <div className="mb-2 flex items-center gap-2">
+                    <div
+                      className={`h-3 w-3 rounded-full border-2 ${
+                        style === "placeholder"
+                          ? "border-accent-indigo bg-accent-indigo"
+                          : "border-text-muted"
+                      }`}
+                    />
+                    <span className="text-xs font-semibold text-text-primary">
+                      Placeholders
+                    </span>
+                  </div>
+                  <p className="pl-5 font-mono text-[10px] text-text-muted">
+                    John Smith &rarr; [NAME]
+                  </p>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setStyle("blackbox")}
-                className={`rounded-lg border p-4 text-left transition-all ${
-                  style === "blackbox"
-                    ? "border-accent-indigo/30 bg-accent-indigo/10"
-                    : "border-border-card bg-bg-secondary hover:border-border-card-hover"
-                }`}
-              >
-                <div className="mb-2 flex items-center gap-2">
-                  <div
-                    className={`h-3 w-3 rounded-full border-2 ${
-                      style === "blackbox"
-                        ? "border-accent-indigo bg-accent-indigo"
-                        : "border-text-muted"
-                    }`}
-                  />
-                  <span className="text-xs font-semibold text-text-primary">
-                    Black Box
-                  </span>
-                </div>
-                <p className="pl-5 font-mono text-[10px] text-text-muted">
-                  John Smith &rarr; {"\u2588\u2588\u2588\u2588\u2588\u2588"}
-                </p>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setStyle("blackbox")}
+                  className={`rounded-lg border p-4 text-left transition-all ${
+                    style === "blackbox"
+                      ? "border-accent-indigo/30 bg-accent-indigo/10"
+                      : "border-border-card bg-bg-secondary hover:border-border-card-hover"
+                  }`}
+                >
+                  <div className="mb-2 flex items-center gap-2">
+                    <div
+                      className={`h-3 w-3 rounded-full border-2 ${
+                        style === "blackbox"
+                          ? "border-accent-indigo bg-accent-indigo"
+                          : "border-text-muted"
+                      }`}
+                    />
+                    <span className="text-xs font-semibold text-text-primary">
+                      Black Box
+                    </span>
+                  </div>
+                  <p className="pl-5 font-mono text-[10px] text-text-muted">
+                    John Smith &rarr; {"\u2588\u2588\u2588\u2588\u2588\u2588"}
+                  </p>
+                </button>
+              </div>
             </div>
-          </div>
           )}
 
           {/* Scan button */}
@@ -457,7 +474,9 @@ export default function InfoRedactorApp() {
             disabled={isProcessing || selectedTypes.length === 0}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-indigo px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-accent-indigo/80 hover:shadow-[0_0_24px_rgba(99,102,241,0.25)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
           >
-            {isProcessing ? processingStatus || "Processing..." : "Scan for Sensitive Information"}
+            {isProcessing
+              ? processingStatus || "Processing..."
+              : "Scan for Sensitive Information"}
           </button>
         </>
       )}
@@ -494,14 +513,15 @@ export default function InfoRedactorApp() {
                         acc[e.type] = (acc[e.type] || 0) + 1;
                         return acc;
                       },
-                      {} as Record<string, number>
-                    )
+                      {} as Record<string, number>,
+                    ),
                   ).map(([type, count]) => (
                     <span
                       key={type}
                       className="inline-flex items-center gap-1 rounded-full border border-accent-indigo/20 bg-accent-indigo/10 px-2.5 py-1 text-[10px] font-medium text-accent-indigo"
                     >
-                      {ENTITY_OPTIONS.find((e) => e.type === type)?.label ?? type}
+                      {ENTITY_OPTIONS.find((e) => e.type === type)?.label ??
+                        type}
                       <span className="font-mono">{count}</span>
                     </span>
                   ))}
@@ -588,7 +608,8 @@ export default function InfoRedactorApp() {
                   Redaction Complete
                 </p>
                 <p className="text-xs text-text-muted">
-                  {entities.length} item{entities.length !== 1 ? "s" : ""} redacted
+                  {entities.length} item{entities.length !== 1 ? "s" : ""}{" "}
+                  redacted
                 </p>
               </div>
             </div>

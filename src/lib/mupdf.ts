@@ -56,18 +56,18 @@ function bufferToUint8Array(buf: ArrayBuffer): Uint8Array {
 
 function openPdfDocument(
   mupdf: typeof MuPDFModule,
-  data: ArrayBuffer
+  data: ArrayBuffer,
 ): MuPDFModule.PDFDocument {
   return mupdf.Document.openDocument(
     bufferToUint8Array(data),
-    "application/pdf"
+    "application/pdf",
   ) as MuPDFModule.PDFDocument;
 }
 
 // ── PDF info ──
 
 export async function getPdfInfo(
-  file: File
+  file: File,
 ): Promise<{ pageCount: number; pages: PageInfo[] }> {
   const mupdf = await getMuPDF();
   const data = await fileToArrayBuffer(file);
@@ -97,7 +97,7 @@ export async function pdfPageToImage(
   pageIndex: number,
   format: ImageFormat = "png",
   dpi: number = 150,
-  quality: number = 85
+  quality: number = 85,
 ): Promise<ConvertedFile> {
   const mupdf = await getMuPDF();
   const doc = await openPdfDocument(mupdf, data);
@@ -111,7 +111,7 @@ export async function pdfPageToImage(
     matrix,
     mupdf.ColorSpace.DeviceRGB,
     useAlpha,
-    true
+    true,
   );
 
   let mimeType: string;
@@ -120,12 +120,14 @@ export async function pdfPageToImage(
 
   if (format === "jpeg") {
     const result = pixmap.asJPEG(quality, false);
-    rawBytes = result instanceof Uint8Array ? result : (result as any).asUint8Array();
+    rawBytes =
+      result instanceof Uint8Array ? result : (result as any).asUint8Array();
     mimeType = "image/jpeg";
     ext = "jpg";
   } else {
     const result = pixmap.asPNG();
-    rawBytes = result instanceof Uint8Array ? result : (result as any).asUint8Array();
+    rawBytes =
+      result instanceof Uint8Array ? result : (result as any).asUint8Array();
     mimeType = "image/png";
     ext = "png";
   }
@@ -145,14 +147,15 @@ export async function pdfToImages(
   dpi: number = 150,
   quality: number = 85,
   pageIndices?: number[],
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (done: number, total: number) => void,
 ): Promise<ConvertedFile[]> {
   const mupdf = await getMuPDF();
   const data = await fileToArrayBuffer(file);
   const doc = await openPdfDocument(mupdf, data);
 
   const totalPages = doc.countPages();
-  const indices = pageIndices ?? Array.from({ length: totalPages }, (_, i) => i);
+  const indices =
+    pageIndices ?? Array.from({ length: totalPages }, (_, i) => i);
   const results: ConvertedFile[] = [];
 
   for (let i = 0; i < indices.length; i++) {
@@ -170,14 +173,15 @@ export async function pdfToImages(
 
 export async function pdfToText(
   file: File,
-  pageIndices?: number[]
+  pageIndices?: number[],
 ): Promise<string> {
   const mupdf = await getMuPDF();
   const data = await fileToArrayBuffer(file);
   const doc = await openPdfDocument(mupdf, data);
 
   const totalPages = doc.countPages();
-  const indices = pageIndices ?? Array.from({ length: totalPages }, (_, i) => i);
+  const indices =
+    pageIndices ?? Array.from({ length: totalPages }, (_, i) => i);
   const parts: string[] = [];
 
   for (const idx of indices) {
@@ -191,14 +195,15 @@ export async function pdfToText(
 
 export async function pdfToHtml(
   file: File,
-  pageIndices?: number[]
+  pageIndices?: number[],
 ): Promise<string> {
   const mupdf = await getMuPDF();
   const data = await fileToArrayBuffer(file);
   const doc = await openPdfDocument(mupdf, data);
 
   const totalPages = doc.countPages();
-  const indices = pageIndices ?? Array.from({ length: totalPages }, (_, i) => i);
+  const indices =
+    pageIndices ?? Array.from({ length: totalPages }, (_, i) => i);
   const parts: string[] = [];
 
   for (const idx of indices) {
@@ -214,7 +219,7 @@ export async function pdfToHtml(
 
 export async function mergePdfs(
   files: File[],
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (done: number, total: number) => void,
 ): Promise<ConvertedFile> {
   const mupdf = await getMuPDF();
   const dstDoc = new mupdf.PDFDocument();
@@ -235,7 +240,10 @@ export async function mergePdfs(
       if (srcPage.get("Rotate"))
         dstPage.put("Rotate", graftMap.graftObject(srcPage.get("Rotate")));
       if (srcPage.get("Resources"))
-        dstPage.put("Resources", graftMap.graftObject(srcPage.get("Resources")));
+        dstPage.put(
+          "Resources",
+          graftMap.graftObject(srcPage.get("Resources")),
+        );
       if (srcPage.get("Contents"))
         dstPage.put("Contents", graftMap.graftObject(srcPage.get("Contents")));
 
@@ -260,7 +268,7 @@ export async function mergePdfs(
 export async function splitPdf(
   file: File,
   ranges: number[][],
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (done: number, total: number) => void,
 ): Promise<ConvertedFile[]> {
   const mupdf = await getMuPDF();
   const data = await fileToArrayBuffer(file);
@@ -282,7 +290,10 @@ export async function splitPdf(
       if (srcPage.get("Rotate"))
         dstPage.put("Rotate", graftMap.graftObject(srcPage.get("Rotate")));
       if (srcPage.get("Resources"))
-        dstPage.put("Resources", graftMap.graftObject(srcPage.get("Resources")));
+        dstPage.put(
+          "Resources",
+          graftMap.graftObject(srcPage.get("Resources")),
+        );
       if (srcPage.get("Contents"))
         dstPage.put("Contents", graftMap.graftObject(srcPage.get("Contents")));
 
@@ -313,7 +324,7 @@ export async function splitPdf(
 
 export async function extractPages(
   file: File,
-  pageIndices: number[]
+  pageIndices: number[],
 ): Promise<ConvertedFile> {
   const results = await splitPdf(file, [pageIndices]);
   const baseName = stripExtension(file.name);
@@ -328,9 +339,7 @@ export async function compressPdf(file: File): Promise<ConvertedFile> {
   const data = await fileToArrayBuffer(file);
   const doc = await openPdfDocument(mupdf, data);
 
-  const outBuf = doc.saveToBuffer(
-    "garbage=4,compress=yes,clean=yes"
-  );
+  const outBuf = doc.saveToBuffer("garbage=4,compress=yes,clean=yes");
   const arrayBuffer = outBuf.asUint8Array().slice().buffer as ArrayBuffer;
   const baseName = stripExtension(file.name);
 
@@ -394,10 +403,7 @@ function mapFont(family: string): string {
   }
 }
 
-function getHeadingLevel(
-  fontSize: number,
-  isBold: boolean
-): any {
+function getHeadingLevel(fontSize: number, isBold: boolean): any {
   if (!isBold) return undefined;
   if (fontSize >= 24) return "Heading1";
   if (fontSize >= 18) return "Heading2";
@@ -408,8 +414,8 @@ function getHeadingLevel(
 function lineToTextRun(
   docxLib: typeof import("docx"),
   line: STextLine,
-  prependSpace: boolean
-): InstanceType<typeof import("docx")["TextRun"]> {
+  prependSpace: boolean,
+): InstanceType<(typeof import("docx"))["TextRun"]> {
   const text = prependSpace ? " " + line.text : line.text;
   return new docxLib.TextRun({
     text,
@@ -423,8 +429,8 @@ function lineToTextRun(
 function linesToParagraph(
   docxLib: typeof import("docx"),
   lines: STextLine[],
-  detectHeading: boolean = true
-): InstanceType<typeof import("docx")["Paragraph"]> {
+  detectHeading: boolean = true,
+): InstanceType<(typeof import("docx"))["Paragraph"]> {
   const runs = lines.map((line, li) => lineToTextRun(docxLib, line, li > 0));
   const avgSize = lines.reduce((s, l) => s + l.font.size, 0) / lines.length;
   const isBold = lines.every((l) => l.font.weight === "bold");
@@ -461,8 +467,8 @@ function groupLinesIntoParagraphs(lines: STextLine[]): STextLine[][] {
 
 function buildImageParagraph(
   docxLib: typeof import("docx"),
-  img: ExtractedImage
-): InstanceType<typeof import("docx")["Paragraph"]> | null {
+  img: ExtractedImage,
+): InstanceType<(typeof import("docx"))["Paragraph"]> | null {
   try {
     const imgWidth = Math.abs(img.bbox[2] - img.bbox[0]);
     const imgHeight = Math.abs(img.bbox[3] - img.bbox[1]);
@@ -513,7 +519,7 @@ function sanitizeMuPDFJson(raw: string): string {
 export async function pdfToDocx(
   file: File,
   pageIndices?: number[],
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (done: number, total: number) => void,
 ): Promise<ConvertedFile> {
   const mupdf = await getMuPDF();
   const docxLib = await import("docx");
@@ -521,7 +527,8 @@ export async function pdfToDocx(
   const doc = openPdfDocument(mupdf, data);
 
   const totalPages = doc.countPages();
-  const indices = pageIndices ?? Array.from({ length: totalPages }, (_, i) => i);
+  const indices =
+    pageIndices ?? Array.from({ length: totalPages }, (_, i) => i);
 
   const children: any[] = [];
 
@@ -553,7 +560,7 @@ export async function pdfToDocx(
     // Add page break before every page except the first
     if (i > 0) {
       children.push(
-        new docxLib.Paragraph({ children: [], pageBreakBefore: true })
+        new docxLib.Paragraph({ children: [], pageBreakBefore: true }),
       );
     }
 
@@ -611,12 +618,12 @@ export async function pdfToDocx(
 // ── Page range parser ──
 // Accepts: "1-3, 5, 7-10" and returns 0-based indices
 
-export function parsePageRange(
-  input: string,
-  totalPages: number
-): number[] {
+export function parsePageRange(input: string, totalPages: number): number[] {
   const indices = new Set<number>();
-  const parts = input.split(",").map((s) => s.trim()).filter(Boolean);
+  const parts = input
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   for (const part of parts) {
     const rangeParts = part.split("-").map((s) => s.trim());
@@ -642,10 +649,7 @@ export function parsePageRange(
 
 // ── Split mode helpers ──
 
-export function splitEveryNPages(
-  totalPages: number,
-  n: number
-): number[][] {
+export function splitEveryNPages(totalPages: number, n: number): number[][] {
   const ranges: number[][] = [];
   for (let i = 0; i < totalPages; i += n) {
     const range: number[] = [];

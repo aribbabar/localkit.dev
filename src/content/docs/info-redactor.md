@@ -57,13 +57,17 @@ This tool is inherently about privacy — you're using it to protect sensitive d
 ## FAQs
 
 ### How accurate is the name detection?
+
 The compromise NLP library is good at detecting common English names, but may miss unusual names or misidentify common words as names. Always review the highlighted entities before finalizing redaction.
 
 ### Does it work with non-English text?
+
 The NLP detection (names, places) is primarily designed for English text. However, structured patterns (emails, phone numbers, credit cards, SSNs) work regardless of language since they follow universal formats.
 
 ### Can I add custom redaction patterns?
+
 Yes — you can add custom regex patterns to detect domain-specific sensitive data that the built-in patterns don't cover.
 
 ### Is the redaction reversible?
+
 No. Once you export the redacted text, the original content in the redacted positions is permanently removed. Always keep a copy of the original text if you may need it later.

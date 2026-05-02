@@ -1,4 +1,9 @@
-import { useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
+import {
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type ReactNode,
+} from "react";
 
 // ── Utility ──
 
@@ -49,8 +54,9 @@ export function PdfDropZone({
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files) {
-      const files = Array.from(e.dataTransfer.files).filter((f) =>
-        f.name.toLowerCase().endsWith(".pdf") || f.type === "application/pdf"
+      const files = Array.from(e.dataTransfer.files).filter(
+        (f) =>
+          f.name.toLowerCase().endsWith(".pdf") || f.type === "application/pdf",
       );
       if (files.length) onFiles(files);
     }
@@ -219,9 +225,7 @@ export function ProgressBar({
   return (
     <div className="rounded-xl border border-border-card bg-bg-card p-5">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-medium text-text-secondary">
-          {label}
-        </span>
+        <span className="text-xs font-medium text-text-secondary">{label}</span>
         <span className="font-mono text-xs text-text-muted">
           {done}/{total}
         </span>

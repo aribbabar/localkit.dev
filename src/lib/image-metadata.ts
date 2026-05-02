@@ -169,7 +169,8 @@ function humanizeKey(key: string): string {
 function formatValue(value: unknown): string {
   if (value === null || value === undefined) return "";
   if (value instanceof Date) return value.toLocaleString();
-  if (value instanceof Uint8Array || value instanceof ArrayBuffer) return `[Binary data, ${value instanceof Uint8Array ? value.length : value.byteLength} bytes]`;
+  if (value instanceof Uint8Array || value instanceof ArrayBuffer)
+    return `[Binary data, ${value instanceof Uint8Array ? value.length : value.byteLength} bytes]`;
   if (Array.isArray(value)) return value.map(formatValue).join(", ");
   if (typeof value === "object") {
     try {
@@ -204,7 +205,15 @@ const CATEGORY_META: Record<string, { label: string; icon: string }> = {
   other: { label: "Other", icon: "other" },
 };
 
-const CATEGORY_ORDER = ["camera", "image", "gps", "dates", "author", "software", "other"];
+const CATEGORY_ORDER = [
+  "camera",
+  "image",
+  "gps",
+  "dates",
+  "author",
+  "software",
+  "other",
+];
 
 // Keys to skip (internal or not useful to display)
 const SKIP_KEYS = new Set([
@@ -255,7 +264,9 @@ export async function parseMetadata(file: File): Promise<ImageMetadata> {
   try {
     const thumb = await exifr.thumbnail(buffer);
     if (thumb) {
-      thumbnailUrl = URL.createObjectURL(new Blob([thumb.buffer as ArrayBuffer], { type: "image/jpeg" }));
+      thumbnailUrl = URL.createObjectURL(
+        new Blob([thumb.buffer as ArrayBuffer], { type: "image/jpeg" }),
+      );
     }
   } catch {
     // No embedded thumbnail
@@ -283,13 +294,13 @@ export async function parseMetadata(file: File): Promise<ImageMetadata> {
     });
   }
 
-  const categories: MetadataCategory[] = CATEGORY_ORDER
-    .filter((cat) => grouped[cat]?.length)
-    .map((cat) => ({
-      label: CATEGORY_META[cat].label,
-      icon: CATEGORY_META[cat].icon,
-      fields: grouped[cat],
-    }));
+  const categories: MetadataCategory[] = CATEGORY_ORDER.filter(
+    (cat) => grouped[cat]?.length,
+  ).map((cat) => ({
+    label: CATEGORY_META[cat].label,
+    icon: CATEGORY_META[cat].icon,
+    fields: grouped[cat],
+  }));
 
   return {
     fileName: file.name,
@@ -330,7 +341,8 @@ export async function stripMetadata(
         ctx.drawImage(img, 0, 0);
 
         const ext = file.name.split(".").pop()?.toLowerCase() || "png";
-        const mimeType = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
+        const mimeType =
+          ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
         const quality = mimeType === "image/jpeg" ? 0.95 : undefined;
 
         canvas.toBlob(

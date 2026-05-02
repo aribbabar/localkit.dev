@@ -94,7 +94,11 @@ body {
 
 /* ── Selection ── */
 ::selection {
-  background-color: color-mix(in srgb, var(--color-accent-green) 30%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-accent-green) 30%,
+    transparent
+  );
   color: var(--color-text-primary);
 }
 

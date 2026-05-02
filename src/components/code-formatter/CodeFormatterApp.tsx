@@ -29,13 +29,41 @@ interface SavedSettings {
 }
 
 const IMAGE_BACKGROUNDS = [
-  { id: "gradient-blue", label: "Ocean", css: "linear-gradient(145deg, #0a2463 0%, #1e6091 50%, #168aad 100%)" },
-  { id: "gradient-purple", label: "Nebula", css: "linear-gradient(145deg, #2d1b69 0%, #6b21a8 50%, #a855f7 100%)" },
-  { id: "gradient-green", label: "Forest", css: "linear-gradient(145deg, #1a2e1a 0%, #2d5a27 50%, #4ade80 100%)" },
-  { id: "gradient-sunset", label: "Sunset", css: "linear-gradient(145deg, #7f1d1d 0%, #c2410c 50%, #f59e0b 100%)" },
-  { id: "gradient-nord", label: "Nord", css: "linear-gradient(145deg, #2e3440 0%, #3b4252 50%, #434c5e 100%)" },
-  { id: "gradient-rose", label: "Rose", css: "linear-gradient(145deg, #4c0519 0%, #9f1239 50%, #f43f5e 100%)" },
-  { id: "gradient-cyan", label: "Cyan", css: "linear-gradient(145deg, #083344 0%, #155e75 50%, #22d3ee 100%)" },
+  {
+    id: "gradient-blue",
+    label: "Ocean",
+    css: "linear-gradient(145deg, #0a2463 0%, #1e6091 50%, #168aad 100%)",
+  },
+  {
+    id: "gradient-purple",
+    label: "Nebula",
+    css: "linear-gradient(145deg, #2d1b69 0%, #6b21a8 50%, #a855f7 100%)",
+  },
+  {
+    id: "gradient-green",
+    label: "Forest",
+    css: "linear-gradient(145deg, #1a2e1a 0%, #2d5a27 50%, #4ade80 100%)",
+  },
+  {
+    id: "gradient-sunset",
+    label: "Sunset",
+    css: "linear-gradient(145deg, #7f1d1d 0%, #c2410c 50%, #f59e0b 100%)",
+  },
+  {
+    id: "gradient-nord",
+    label: "Nord",
+    css: "linear-gradient(145deg, #2e3440 0%, #3b4252 50%, #434c5e 100%)",
+  },
+  {
+    id: "gradient-rose",
+    label: "Rose",
+    css: "linear-gradient(145deg, #4c0519 0%, #9f1239 50%, #f43f5e 100%)",
+  },
+  {
+    id: "gradient-cyan",
+    label: "Cyan",
+    css: "linear-gradient(145deg, #083344 0%, #155e75 50%, #22d3ee 100%)",
+  },
   { id: "solid-dark", label: "Dark", css: "#1a1b26" },
   { id: "solid-black", label: "Black", css: "#000000" },
   { id: "solid-white", label: "White", css: "#f8fafc" },
@@ -91,8 +119,12 @@ export default function CodeFormatterApp() {
   const [copied, setCopied] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [exportingImage, setExportingImage] = useState(false);
-  const [showLineNumbers, setShowLineNumbers] = useState(saved.showLineNumbers ?? true);
-  const [imageBackground, setImageBackground] = useState(saved.imageBackground ?? "gradient-blue");
+  const [showLineNumbers, setShowLineNumbers] = useState(
+    saved.showLineNumbers ?? true,
+  );
+  const [imageBackground, setImageBackground] = useState(
+    saved.imageBackground ?? "gradient-blue",
+  );
   const [imagePadding, setImagePadding] = useState(saved.imagePadding ?? 48);
 
   const [prettierOpts, setPrettierOpts] = useState<PrettierUserOptions>({
@@ -112,8 +144,24 @@ export default function CodeFormatterApp() {
 
   // Persist settings
   useEffect(() => {
-    saveSettings({ langId, themeId, prettierOpts, clangOpts, showLineNumbers, imageBackground, imagePadding });
-  }, [langId, themeId, prettierOpts, clangOpts, showLineNumbers, imageBackground, imagePadding]);
+    saveSettings({
+      langId,
+      themeId,
+      prettierOpts,
+      clangOpts,
+      showLineNumbers,
+      imageBackground,
+      imagePadding,
+    });
+  }, [
+    langId,
+    themeId,
+    prettierOpts,
+    clangOpts,
+    showLineNumbers,
+    imageBackground,
+    imagePadding,
+  ]);
 
   // Re-highlight when theme changes and there's output
   useEffect(() => {
@@ -122,7 +170,9 @@ export default function CodeFormatterApp() {
     highlightCode(output, lang, themeId).then((html) => {
       if (!cancelled) setHighlightedHtml(html);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [themeId, output, lang]);
 
   /* ── Actions ──────────────────────────────────────────────────── */
@@ -206,10 +256,12 @@ export default function CodeFormatterApp() {
         const ta = e.currentTarget;
         const start = ta.selectionStart;
         const end = ta.selectionEnd;
-        const indent = lang.engine === "prettier" && !prettierOpts.useTabs
-          ? " ".repeat(prettierOpts.tabWidth)
-          : "\t";
-        const newVal = ta.value.substring(0, start) + indent + ta.value.substring(end);
+        const indent =
+          lang.engine === "prettier" && !prettierOpts.useTabs
+            ? " ".repeat(prettierOpts.tabWidth)
+            : "\t";
+        const newVal =
+          ta.value.substring(0, start) + indent + ta.value.substring(end);
         setInput(newVal);
         requestAnimationFrame(() => {
           ta.selectionStart = ta.selectionEnd = start + indent.length;
@@ -230,7 +282,9 @@ export default function CodeFormatterApp() {
       {/* ── Language + Theme selectors ────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-text-secondary">Language</label>
+          <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+            Language
+          </label>
           <select
             value={langId}
             onChange={(e) => handleLangChange(e.target.value)}
@@ -248,7 +302,9 @@ export default function CodeFormatterApp() {
           </select>
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-text-secondary">Theme</label>
+          <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+            Theme
+          </label>
           <select
             value={themeId}
             onChange={(e) => setThemeId(e.target.value)}
@@ -256,12 +312,16 @@ export default function CodeFormatterApp() {
           >
             <optgroup label="Dark">
               {THEMES.filter((t) => t.type === "dark").map((t) => (
-                <option key={t.id} value={t.id}>{t.label}</option>
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
               ))}
             </optgroup>
             <optgroup label="Light">
               {THEMES.filter((t) => t.type === "light").map((t) => (
-                <option key={t.id} value={t.id}>{t.label}</option>
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
               ))}
             </optgroup>
           </select>
@@ -280,7 +340,11 @@ export default function CodeFormatterApp() {
           stroke="currentColor"
           strokeWidth={2}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M8.25 4.5l7.5 7.5-7.5 7.5"
+          />
         </svg>
         Formatting options
         <span className="rounded bg-bg-card px-1.5 py-0.5 text-[10px] text-text-muted">
@@ -291,7 +355,10 @@ export default function CodeFormatterApp() {
       {showOptions && (
         <div className="rounded-lg border border-border-card bg-bg-card/60 p-4">
           {lang.engine === "prettier" ? (
-            <PrettierOptionsPanel options={prettierOpts} onChange={setPrettierOpts} />
+            <PrettierOptionsPanel
+              options={prettierOpts}
+              onChange={setPrettierOpts}
+            />
           ) : (
             <ClangOptionsPanel options={clangOpts} onChange={setClangOpts} />
           )}
@@ -301,7 +368,9 @@ export default function CodeFormatterApp() {
       {/* ── Input ─────────────────────────────────────────────────── */}
       <div>
         <div className="mb-1.5 flex items-center justify-between">
-          <label className="text-xs font-medium text-text-secondary">Input</label>
+          <label className="text-xs font-medium text-text-secondary">
+            Input
+          </label>
           <span className="text-[10px] text-text-muted">
             {lang.engine === "prettier" ? "Prettier" : "clang-format"} engine
           </span>
@@ -330,16 +399,41 @@ export default function CodeFormatterApp() {
         >
           {formatting ? (
             <>
-              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              <svg
+                className="h-4 w-4 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
               </svg>
               Formatting...
             </>
           ) : (
             <>
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"
+                />
               </svg>
               Format Code
             </>
@@ -354,7 +448,9 @@ export default function CodeFormatterApp() {
       {error && (
         <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
           <p className="font-medium mb-1">Formatting error</p>
-          <pre className="whitespace-pre-wrap text-xs font-mono opacity-80">{error}</pre>
+          <pre className="whitespace-pre-wrap text-xs font-mono opacity-80">
+            {error}
+          </pre>
         </div>
       )}
 
@@ -362,15 +458,27 @@ export default function CodeFormatterApp() {
       {output && (
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label className="text-xs font-medium text-text-secondary">Formatted output</label>
+            <label className="text-xs font-medium text-text-secondary">
+              Formatted output
+            </label>
             <div className="flex gap-2">
               <button
                 onClick={handleDownloadImage}
                 disabled={exportingImage}
                 className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:text-accent-purple hover:bg-accent-purple/10 disabled:opacity-40"
               >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"
+                  />
                 </svg>
                 {exportingImage ? "Exporting..." : "Image"}
               </button>
@@ -378,8 +486,18 @@ export default function CodeFormatterApp() {
                 onClick={handleDownload}
                 className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:text-text-secondary hover:bg-bg-secondary"
               >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                  />
                 </svg>
                 Download
               </button>
@@ -389,15 +507,35 @@ export default function CodeFormatterApp() {
               >
                 {copied ? (
                   <>
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    <svg
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4.5 12.75l6 6 9-13.5"
+                      />
                     </svg>
                     Copied
                   </>
                 ) : (
                   <>
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                    <svg
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"
+                      />
                     </svg>
                     Copy
                   </>
@@ -414,7 +552,9 @@ export default function CodeFormatterApp() {
 
           {/* ── Image Export Settings ─────────────────────────────── */}
           <div className="mt-4 rounded-lg border border-border-card bg-bg-card/60 p-4 space-y-3">
-            <p className="text-xs font-medium text-text-secondary">Image export settings</p>
+            <p className="text-xs font-medium text-text-secondary">
+              Image export settings
+            </p>
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
               <ToggleOption
                 label="Line Numbers"
@@ -437,7 +577,9 @@ export default function CodeFormatterApp() {
                     className="rounded border border-border-card bg-bg-secondary px-2 py-1 text-xs text-text-primary focus:border-accent-teal/40 focus:outline-none min-w-0"
                   >
                     {IMAGE_BACKGROUNDS.map((b) => (
-                      <option key={b.id} value={b.id}>{b.label}</option>
+                      <option key={b.id} value={b.id}>
+                        {b.label}
+                      </option>
                     ))}
                   </select>
                 </label>
@@ -513,7 +655,9 @@ function CodeImageContent({
   const lineCount = code.split("\n").length;
   const gutterChars = String(lineCount).length;
 
-  const finalHtml = showLineNumbers ? injectLineNumbers(highlightedHtml) : highlightedHtml;
+  const finalHtml = showLineNumbers
+    ? injectLineNumbers(highlightedHtml)
+    : highlightedHtml;
 
   // CSS custom properties to control gutter width in the style block below
   const lineNumStyles = showLineNumbers
@@ -532,7 +676,9 @@ function CodeImageContent({
 
   return (
     <div className={showLineNumbers ? "code-image-numbered" : ""}>
-      {lineNumStyles && <style dangerouslySetInnerHTML={{ __html: lineNumStyles }} />}
+      {lineNumStyles && (
+        <style dangerouslySetInnerHTML={{ __html: lineNumStyles }} />
+      )}
       <div
         className="[&_pre]:!m-0 [&_pre]:!rounded-none [&_pre]:!px-5 [&_pre]:!py-4 [&_code]:!text-sm [&_code]:!leading-relaxed [&_code]:!font-mono"
         dangerouslySetInnerHTML={{ __html: finalHtml }}
@@ -552,42 +698,88 @@ function PrettierOptionsPanel({
   options: PrettierUserOptions;
   onChange: (opts: PrettierUserOptions) => void;
 }) {
-  const set = <K extends keyof PrettierUserOptions>(key: K, val: PrettierUserOptions[K]) =>
-    onChange({ ...options, [key]: val });
+  const set = <K extends keyof PrettierUserOptions>(
+    key: K,
+    val: PrettierUserOptions[K],
+  ) => onChange({ ...options, [key]: val });
 
   return (
     <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
-      <NumberOption label="Print Width" value={options.printWidth} onChange={(v) => set("printWidth", v)} min={40} max={200} />
-      <NumberOption label="Tab Width" value={options.tabWidth} onChange={(v) => set("tabWidth", v)} min={1} max={16} />
-      <ToggleOption label="Use Tabs" value={options.useTabs} onChange={(v) => set("useTabs", v)} />
-      <ToggleOption label="Semicolons" value={options.semi} onChange={(v) => set("semi", v)} />
-      <ToggleOption label="Single Quotes" value={options.singleQuote} onChange={(v) => set("singleQuote", v)} />
+      <NumberOption
+        label="Print Width"
+        value={options.printWidth}
+        onChange={(v) => set("printWidth", v)}
+        min={40}
+        max={200}
+      />
+      <NumberOption
+        label="Tab Width"
+        value={options.tabWidth}
+        onChange={(v) => set("tabWidth", v)}
+        min={1}
+        max={16}
+      />
+      <ToggleOption
+        label="Use Tabs"
+        value={options.useTabs}
+        onChange={(v) => set("useTabs", v)}
+      />
+      <ToggleOption
+        label="Semicolons"
+        value={options.semi}
+        onChange={(v) => set("semi", v)}
+      />
+      <ToggleOption
+        label="Single Quotes"
+        value={options.singleQuote}
+        onChange={(v) => set("singleQuote", v)}
+      />
       <SelectOption
         label="Trailing Comma"
         value={options.trailingComma}
         options={["all", "es5", "none"]}
-        onChange={(v) => set("trailingComma", v as PrettierUserOptions["trailingComma"])}
+        onChange={(v) =>
+          set("trailingComma", v as PrettierUserOptions["trailingComma"])
+        }
       />
-      <ToggleOption label="Bracket Spacing" value={options.bracketSpacing} onChange={(v) => set("bracketSpacing", v)} />
-      <ToggleOption label="Bracket Same Line" value={options.bracketSameLine} onChange={(v) => set("bracketSameLine", v)} />
+      <ToggleOption
+        label="Bracket Spacing"
+        value={options.bracketSpacing}
+        onChange={(v) => set("bracketSpacing", v)}
+      />
+      <ToggleOption
+        label="Bracket Same Line"
+        value={options.bracketSameLine}
+        onChange={(v) => set("bracketSameLine", v)}
+      />
       <SelectOption
         label="Arrow Parens"
         value={options.arrowParens}
         options={["always", "avoid"]}
-        onChange={(v) => set("arrowParens", v as PrettierUserOptions["arrowParens"])}
+        onChange={(v) =>
+          set("arrowParens", v as PrettierUserOptions["arrowParens"])
+        }
       />
       <SelectOption
         label="Prose Wrap"
         value={options.proseWrap}
         options={["always", "never", "preserve"]}
-        onChange={(v) => set("proseWrap", v as PrettierUserOptions["proseWrap"])}
+        onChange={(v) =>
+          set("proseWrap", v as PrettierUserOptions["proseWrap"])
+        }
       />
-      <ToggleOption label="Single Attr / Line" value={options.singleAttributePerLine} onChange={(v) => set("singleAttributePerLine", v)} />
+      <ToggleOption
+        label="Single Attr / Line"
+        value={options.singleAttributePerLine}
+        onChange={(v) => set("singleAttributePerLine", v)}
+      />
       <SelectOption
         label="End of Line"
         value={options.endOfLine}
         options={["lf", "crlf", "cr", "auto"]}
-        onChange={(v) => set("endOfLine", v as PrettierUserOptions["endOfLine"])}
+        onChange={(v) =>
+          set("endOfLine", v as PrettierUserOptions["endOfLine"])
+        }
       />
     </div>
   );
@@ -604,8 +796,10 @@ function ClangOptionsPanel({
   options: ClangUserOptions;
   onChange: (opts: ClangUserOptions) => void;
 }) {
-  const set = <K extends keyof ClangUserOptions>(key: K, val: ClangUserOptions[K]) =>
-    onChange({ ...options, [key]: val });
+  const set = <K extends keyof ClangUserOptions>(
+    key: K,
+    val: ClangUserOptions[K],
+  ) => onChange({ ...options, [key]: val });
 
   return (
     <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
@@ -615,8 +809,20 @@ function ClangOptionsPanel({
         options={[...CLANG_PRESETS]}
         onChange={(v) => set("preset", v as ClangUserOptions["preset"])}
       />
-      <NumberOption label="Indent Width" value={options.indentWidth} onChange={(v) => set("indentWidth", v)} min={1} max={16} />
-      <NumberOption label="Column Limit" value={options.columnLimit} onChange={(v) => set("columnLimit", v)} min={40} max={200} />
+      <NumberOption
+        label="Indent Width"
+        value={options.indentWidth}
+        onChange={(v) => set("indentWidth", v)}
+        min={1}
+        max={16}
+      />
+      <NumberOption
+        label="Column Limit"
+        value={options.columnLimit}
+        onChange={(v) => set("columnLimit", v)}
+        min={40}
+        max={200}
+      />
     </div>
   );
 }

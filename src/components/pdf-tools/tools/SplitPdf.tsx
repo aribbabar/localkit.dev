@@ -76,7 +76,7 @@ export default function SplitPdf() {
 
       setProgress({ done: 0, total: ranges.length });
       const output = await lib.splitPdf(file, ranges, (done, total) =>
-        setProgress({ done, total })
+        setProgress({ done, total }),
       );
       setResults(output);
     } catch (err: any) {
@@ -172,9 +172,7 @@ export default function SplitPdf() {
                   onChange={() => setSplitMode("every")}
                   className="accent-accent-red"
                 />
-                <span className="text-xs text-text-secondary">
-                  Split every
-                </span>
+                <span className="text-xs text-text-secondary">Split every</span>
                 {splitMode === "every" && (
                   <input
                     type="number"

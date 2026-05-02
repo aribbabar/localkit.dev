@@ -75,7 +75,8 @@ export default function MarkdownPreviewApp() {
   /* ── Sync scroll positions ───────────────────────────────────── */
 
   const handleEditorScroll = useCallback(() => {
-    if (viewMode !== "split" || !textareaRef.current || !previewRef.current) return;
+    if (viewMode !== "split" || !textareaRef.current || !previewRef.current)
+      return;
     const ta = textareaRef.current;
     const ratio = ta.scrollTop / (ta.scrollHeight - ta.clientHeight || 1);
     const preview = previewRef.current;
@@ -137,7 +138,11 @@ export default function MarkdownPreviewApp() {
                   : "text-text-muted hover:text-text-secondary"
               }`}
             >
-              {mode === "split" ? "Split" : mode === "editor" ? "Editor" : "Preview"}
+              {mode === "split"
+                ? "Split"
+                : mode === "editor"
+                  ? "Editor"
+                  : "Preview"}
             </button>
           ))}
         </div>
@@ -148,22 +153,14 @@ export default function MarkdownPreviewApp() {
             onClick={handleCopyMarkdown}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:text-text-secondary hover:bg-bg-secondary"
           >
-            {copied === "md" ? (
-              <CheckIcon />
-            ) : (
-              <ClipboardIcon />
-            )}
+            {copied === "md" ? <CheckIcon /> : <ClipboardIcon />}
             {copied === "md" ? "Copied" : "Copy MD"}
           </button>
           <button
             onClick={handleCopyHtml}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:text-text-secondary hover:bg-bg-secondary"
           >
-            {copied === "html" ? (
-              <CheckIcon />
-            ) : (
-              <ClipboardIcon />
-            )}
+            {copied === "html" ? <CheckIcon /> : <ClipboardIcon />}
             {copied === "html" ? "Copied" : "Copy HTML"}
           </button>
           <button
@@ -186,9 +183,7 @@ export default function MarkdownPreviewApp() {
       {/* ── Editor + Preview panes ──────────────────────────────── */}
       <div
         className={`grid gap-4 ${
-          viewMode === "split"
-            ? "grid-cols-1 md:grid-cols-2"
-            : "grid-cols-1"
+          viewMode === "split" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
         }`}
         style={{ minHeight: "32rem" }}
       >
@@ -196,7 +191,9 @@ export default function MarkdownPreviewApp() {
         {viewMode !== "preview" && (
           <div className="flex flex-col">
             <div className="mb-1.5 flex items-center justify-between">
-              <label className="text-xs font-medium text-text-secondary">Markdown</label>
+              <label className="text-xs font-medium text-text-secondary">
+                Markdown
+              </label>
               <span className="text-[10px] text-text-muted">
                 {stats.words} words &middot; {stats.lines} lines
               </span>
@@ -217,7 +214,9 @@ export default function MarkdownPreviewApp() {
         {viewMode !== "editor" && (
           <div className="flex flex-col">
             <div className="mb-1.5 flex items-center justify-between">
-              <label className="text-xs font-medium text-text-secondary">Preview</label>
+              <label className="text-xs font-medium text-text-secondary">
+                Preview
+              </label>
               <span className="text-[10px] text-text-muted">
                 {stats.chars} characters
               </span>
@@ -240,24 +239,54 @@ export default function MarkdownPreviewApp() {
 
 function ClipboardIcon() {
   return (
-    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+    <svg
+      className="h-3.5 w-3.5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"
+      />
     </svg>
   );
 }
 
 function CheckIcon() {
   return (
-    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    <svg
+      className="h-3.5 w-3.5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4.5 12.75l6 6 9-13.5"
+      />
     </svg>
   );
 }
 
 function DownloadIcon() {
   return (
-    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+    <svg
+      className="h-3.5 w-3.5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+      />
     </svg>
   );
 }

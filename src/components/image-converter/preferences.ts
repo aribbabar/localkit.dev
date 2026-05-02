@@ -24,7 +24,9 @@ function clampQuality(value: unknown): number {
   return Math.min(100, Math.max(1, Math.round(value)));
 }
 
-export function sanitizeImageConverterPreferences(value: unknown): ImageConverterPreferences {
+export function sanitizeImageConverterPreferences(
+  value: unknown,
+): ImageConverterPreferences {
   if (!value || typeof value !== "object") {
     return { ...DEFAULT_IMAGE_CONVERTER_PREFERENCES };
   }
@@ -38,7 +40,10 @@ export function sanitizeImageConverterPreferences(value: unknown): ImageConverte
   return {
     outputFormat,
     quality: clampQuality(candidate.quality),
-    resize: typeof candidate.resize === "string" ? candidate.resize : DEFAULT_IMAGE_CONVERTER_PREFERENCES.resize,
+    resize:
+      typeof candidate.resize === "string"
+        ? candidate.resize
+        : DEFAULT_IMAGE_CONVERTER_PREFERENCES.resize,
     stripMetadata:
       typeof candidate.stripMetadata === "boolean"
         ? candidate.stripMetadata
@@ -47,7 +52,9 @@ export function sanitizeImageConverterPreferences(value: unknown): ImageConverte
 }
 
 export function loadImageConverterPreferences(
-  storage: StorageLike | undefined = typeof localStorage === "undefined" ? undefined : localStorage
+  storage: StorageLike | undefined = typeof localStorage === "undefined"
+    ? undefined
+    : localStorage,
 ): ImageConverterPreferences {
   try {
     const raw = storage?.getItem(IMAGE_CONVERTER_PREFERENCES_KEY);
@@ -63,12 +70,14 @@ export function loadImageConverterPreferences(
 
 export function saveImageConverterPreferences(
   preferences: ImageConverterPreferences,
-  storage: StorageLike | undefined = typeof localStorage === "undefined" ? undefined : localStorage
+  storage: StorageLike | undefined = typeof localStorage === "undefined"
+    ? undefined
+    : localStorage,
 ) {
   try {
     storage?.setItem(
       IMAGE_CONVERTER_PREFERENCES_KEY,
-      JSON.stringify(sanitizeImageConverterPreferences(preferences))
+      JSON.stringify(sanitizeImageConverterPreferences(preferences)),
     );
   } catch {
     // Storage may be unavailable or full.

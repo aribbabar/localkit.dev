@@ -33,7 +33,11 @@ const jsonLd = {
 };
 ---
 
-<Layout title={pageTitle} description={pageDescription} ogImage="https://localkit.dev/og/pay-calculator.png">
+<Layout
+  title={pageTitle}
+  description={pageDescription}
+  ogImage="https://localkit.dev/og/pay-calculator.png"
+>
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </Fragment>
@@ -41,37 +45,91 @@ const jsonLd = {
 
   <main class="relative pb-16 pt-24 md:pb-24 md:pt-32">
     <div class="pointer-events-none absolute inset-0">
-      <div class="absolute -top-40 -right-40 h-[420px] w-[420px] rounded-full bg-accent-teal/7 blur-[120px]"></div>
-      <div class="absolute -bottom-24 -left-40 h-[320px] w-[320px] rounded-full bg-accent-blue/6 blur-[100px]"></div>
+      <div
+        class="absolute -top-40 -right-40 h-[420px] w-[420px] rounded-full bg-accent-teal/7 blur-[120px]"
+      >
+      </div>
+      <div
+        class="absolute -bottom-24 -left-40 h-[320px] w-[320px] rounded-full bg-accent-blue/6 blur-[100px]"
+      >
+      </div>
     </div>
 
     <div class="relative mx-auto max-w-6xl px-6">
       <div class="mb-8">
-        <a href="/" class="mb-4 inline-flex items-center gap-1.5 text-xs text-text-muted transition-colors hover:text-text-secondary">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        <a
+          href="/"
+          class="mb-4 inline-flex items-center gap-1.5 text-xs text-text-muted transition-colors hover:text-text-secondary"
+        >
+          <svg
+            class="h-3.5 w-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"></path>
           </svg>
           Back to tools
         </a>
         <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-lg border border-accent-teal/20 bg-accent-teal/10">
-            <svg class="h-5 w-5 text-accent-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3.75h10.5A2.25 2.25 0 0119.5 6v12a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 18V6a2.25 2.25 0 012.25-2.25z" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5h7.5M8.25 11.25h1.5m2.25 0h1.5m2.25 0h.75M8.25 15h1.5m2.25 0h1.5m2.25 0h.75" />
+          <div
+            class="flex h-10 w-10 items-center justify-center rounded-lg border border-accent-teal/20 bg-accent-teal/10"
+          >
+            <svg
+              class="h-5 w-5 text-accent-teal"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6.75 3.75h10.5A2.25 2.25 0 0119.5 6v12a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 18V6a2.25 2.25 0 012.25-2.25z"
+              ></path>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8.25 7.5h7.5M8.25 11.25h1.5m2.25 0h1.5m2.25 0h.75M8.25 15h1.5m2.25 0h1.5m2.25 0h.75"
+              ></path>
             </svg>
           </div>
           <div>
-            <h1 class="font-display text-2xl font-bold text-text-primary">Pay Calculator</h1>
-            <p class="text-sm text-text-muted">Convert hourly and annual pay, compare offers, and keep your assumptions saved locally</p>
+            <h1 class="font-display text-2xl font-bold text-text-primary">
+              Pay Calculator
+            </h1>
+            <p class="text-sm text-text-muted">
+              Convert hourly and annual pay, compare offers, and keep your
+              assumptions saved locally
+            </p>
           </div>
         </div>
       </div>
 
-      <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-border-card bg-bg-secondary px-3 py-1">
-        <svg class="h-3.5 w-3.5 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+      <div
+        class="mb-6 inline-flex items-center gap-2 rounded-full border border-border-card bg-bg-secondary px-3 py-1"
+      >
+        <svg
+          class="h-3.5 w-3.5 text-accent-green"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+          ></path>
         </svg>
-        <span class="text-xs text-text-secondary">100% client-side — your pay inputs and saved preferences stay in your browser</span>
+        <span class="text-xs text-text-secondary"
+          >100% client-side — your pay inputs and saved preferences stay in your
+          browser</span
+        >
       </div>
 
       <PayCalculatorApp client:load />

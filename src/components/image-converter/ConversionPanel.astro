@@ -28,12 +28,17 @@
 <!-- Conversion settings -->
 <div id="settings-section" class="hidden">
   <div class="rounded-xl border border-border-card bg-bg-card p-5">
-    <h3 class="font-display mb-4 text-sm font-semibold text-text-primary">Conversion Settings</h3>
+    <h3 class="font-display mb-4 text-sm font-semibold text-text-primary">
+      Conversion Settings
+    </h3>
 
     <div class="space-y-4">
       <!-- Output format -->
       <div>
-        <label for="output-format" class="mb-1.5 block text-xs font-medium text-text-secondary">
+        <label
+          for="output-format"
+          class="mb-1.5 block text-xs font-medium text-text-secondary"
+        >
           Output Format
         </label>
         <select
@@ -57,7 +62,10 @@
 
       <!-- Quality slider (for lossy formats) -->
       <div id="quality-group">
-        <label for="quality-slider" class="mb-1.5 flex items-center justify-between text-xs font-medium text-text-secondary">
+        <label
+          for="quality-slider"
+          class="mb-1.5 flex items-center justify-between text-xs font-medium text-text-secondary"
+        >
           <span>Quality</span>
           <span id="quality-value" class="font-mono text-text-muted">90%</span>
         </label>
@@ -73,7 +81,10 @@
 
       <!-- Resize -->
       <div>
-        <label for="resize-input" class="mb-1.5 block text-xs font-medium text-text-secondary">
+        <label
+          for="resize-input"
+          class="mb-1.5 block text-xs font-medium text-text-secondary"
+        >
           Resize <span class="text-text-muted">(optional)</span>
         </label>
         <input
@@ -87,12 +98,25 @@
       <!-- Strip metadata -->
       <label class="flex items-center gap-2.5 cursor-pointer">
         <input type="checkbox" id="strip-metadata" class="peer sr-only" />
-        <div class="flex h-5 w-5 items-center justify-center rounded border border-border-card bg-bg-secondary transition-colors peer-checked:border-accent-purple peer-checked:bg-accent-purple/20">
-          <svg class="hidden h-3 w-3 text-accent-purple peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+        <div
+          class="flex h-5 w-5 items-center justify-center rounded border border-border-card bg-bg-secondary transition-colors peer-checked:border-accent-purple peer-checked:bg-accent-purple/20"
+        >
+          <svg
+            class="hidden h-3 w-3 text-accent-purple peer-checked:block"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="3"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M4.5 12.75l6 6 9-13.5"></path>
           </svg>
         </div>
-        <span class="text-xs text-text-secondary">Strip metadata (EXIF, etc.)</span>
+        <span class="text-xs text-text-secondary"
+          >Strip metadata (EXIF, etc.)</span
+        >
       </label>
     </div>
 
@@ -101,8 +125,18 @@
       id="convert-btn"
       class="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-accent-purple px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-accent-purple/80 hover:shadow-[0_0_24px_rgba(168,85,247,0.25)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
     >
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
+      <svg
+        class="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182"
+        ></path>
       </svg>
       Convert
     </button>
@@ -114,10 +148,17 @@
   <div class="rounded-xl border border-border-card bg-bg-card p-5">
     <div class="mb-2 flex items-center justify-between">
       <span class="text-xs font-medium text-text-secondary">Converting...</span>
-      <span id="progress-text" class="font-mono text-xs text-text-muted">0/0</span>
+      <span id="progress-text" class="font-mono text-xs text-text-muted"
+        >0/0</span
+      >
     </div>
     <div class="h-2 w-full overflow-hidden rounded-full bg-bg-secondary">
-      <div id="progress-bar" class="h-full rounded-full bg-accent-purple transition-all duration-300" style="width: 0%"></div>
+      <div
+        id="progress-bar"
+        class="h-full rounded-full bg-accent-purple transition-all duration-300"
+        style="width: 0%"
+      >
+      </div>
     </div>
   </div>
 </div>
@@ -126,13 +167,25 @@
 <div id="results-section" class="hidden">
   <div class="rounded-xl border border-border-card bg-bg-card p-5">
     <div class="mb-4 flex items-center justify-between">
-      <h3 class="font-display text-sm font-semibold text-accent-green">Conversion Complete</h3>
+      <h3 class="font-display text-sm font-semibold text-accent-green">
+        Conversion Complete
+      </h3>
       <button
         id="download-all-btn"
         class="inline-flex items-center gap-1.5 rounded-lg border border-accent-green/30 bg-accent-green/10 px-3 py-1.5 text-xs font-medium text-accent-green transition-all hover:bg-accent-green/20"
       >
-        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+        <svg
+          class="h-3.5 w-3.5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+          ></path>
         </svg>
         Download ZIP
       </button>

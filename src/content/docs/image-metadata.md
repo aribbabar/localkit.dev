@@ -55,10 +55,13 @@ This tool is especially privacy-relevant — photos from smartphones often conta
 ## FAQs
 
 ### Why do my photos have GPS data?
+
 Most smartphones embed GPS coordinates in photo metadata by default. This is useful for organizing photos by location, but can reveal your exact location when sharing images online. Use this tool to check and strip GPS data before sharing.
 
 ### Can I edit individual metadata fields?
+
 Currently, the tool supports viewing all metadata and stripping it entirely. Selective field editing is planned for a future update.
 
 ### Does stripping metadata reduce image quality?
+
 No. Metadata stripping only removes the non-pixel data segments from the file. The actual image pixels remain untouched and identical.

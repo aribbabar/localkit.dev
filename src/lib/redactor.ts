@@ -53,8 +53,7 @@ const BLACKBOX = "\u2588\u2588\u2588\u2588\u2588\u2588";
 
 const REGEX_PATTERNS: Partial<Record<EntityType, RegExp>> = {
   ssn: /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,
-  phone:
-    /(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g,
+  phone: /(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g,
   email: /\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b/g,
   url: /\bhttps?:\/\/[^\s<>"')\]]+/gi,
   address:
@@ -65,7 +64,7 @@ const REGEX_PATTERNS: Partial<Record<EntityType, RegExp>> = {
 
 async function detectWithCompromise(
   text: string,
-  entityTypes: EntityType[]
+  entityTypes: EntityType[],
 ): Promise<DetectedEntity[]> {
   const nlp = (await import("compromise")).default;
   const doc = nlp(text);
@@ -165,7 +164,7 @@ let nerPipeline: any = null;
 
 async function detectWithTransformers(
   text: string,
-  entityTypes: EntityType[]
+  entityTypes: EntityType[],
 ): Promise<DetectedEntity[]> {
   const { pipeline } = await import("@huggingface/transformers");
 
@@ -173,7 +172,7 @@ async function detectWithTransformers(
     nerPipeline = await pipeline(
       "token-classification",
       "Xenova/bert-base-NER",
-      { device: "wasm" }
+      { device: "wasm" },
     );
   }
 
@@ -256,7 +255,7 @@ async function detectWithTransformers(
 function findTextOffset(
   fullText: string,
   searchText: string,
-  existingEntities: DetectedEntity[]
+  existingEntities: DetectedEntity[],
 ): number {
   let startFrom = 0;
   while (true) {
@@ -264,7 +263,7 @@ function findTextOffset(
     if (idx === -1) return -1;
 
     const overlaps = existingEntities.some(
-      (e) => idx < e.end && idx + searchText.length > e.start
+      (e) => idx < e.end && idx + searchText.length > e.start,
     );
     if (!overlaps) return idx;
 
@@ -275,7 +274,7 @@ function findTextOffset(
 function addRegexEntities(
   text: string,
   entityTypes: EntityType[],
-  entities: DetectedEntity[]
+  entities: DetectedEntity[],
 ): void {
   for (const type of entityTypes) {
     const pattern = REGEX_PATTERNS[type];
@@ -289,7 +288,7 @@ function addRegexEntities(
       const end = start + match[0].length;
 
       const overlaps = entities.some(
-        (e) => start < e.end && end > e.start && e.type === type
+        (e) => start < e.end && end > e.start && e.type === type,
       );
       if (!overlaps) {
         entities.push({ type, text: match[0], start, end });
@@ -305,7 +304,7 @@ function deduplicateEntities(entities: DetectedEntity[]): DetectedEntity[] {
   const result: DetectedEntity[] = [];
   for (const entity of entities) {
     const overlaps = result.some(
-      (e) => entity.start < e.end && entity.end > e.start
+      (e) => entity.start < e.end && entity.end > e.start,
     );
     if (!overlaps) {
       result.push(entity);
@@ -330,7 +329,7 @@ function splitTextIntoChunks(text: string, maxWords: number): string[] {
 
 export async function detectEntities(
   text: string,
-  options: RedactorOptions
+  options: RedactorOptions,
 ): Promise<DetectedEntity[]> {
   if (options.engine === "transformers") {
     return detectWithTransformers(text, options.entityTypes);
@@ -341,7 +340,7 @@ export async function detectEntities(
 export function applyRedactions(
   text: string,
   entities: DetectedEntity[],
-  style: RedactionStyle
+  style: RedactionStyle,
 ): string {
   // Sort entities by start position in reverse so we can replace from end
   const sorted = [...entities].sort((a, b) => b.start - a.start);
@@ -349,9 +348,7 @@ export function applyRedactions(
   let result = text;
   for (const entity of sorted) {
     const replacement =
-      style === "placeholder"
-        ? PLACEHOLDER_MAP[entity.type]
-        : BLACKBOX;
+      style === "placeholder" ? PLACEHOLDER_MAP[entity.type] : BLACKBOX;
     result =
       result.substring(0, entity.start) +
       replacement +
@@ -377,7 +374,7 @@ export async function extractTextFromPdf(file: File): Promise<string> {
   const data = await file.arrayBuffer();
   const doc = mupdf.Document.openDocument(
     new Uint8Array(data),
-    "application/pdf"
+    "application/pdf",
   ) as MuPDFModule.PDFDocument;
 
   const pageCount = doc.countPages();
@@ -398,13 +395,13 @@ export async function redactPdf(
   file: File,
   entities: DetectedEntity[],
   style: RedactionStyle,
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (done: number, total: number) => void,
 ): Promise<ConvertedFile> {
   const mupdf = await getMuPDF();
   const data = await file.arrayBuffer();
   const doc = mupdf.Document.openDocument(
     new Uint8Array(data),
-    "application/pdf"
+    "application/pdf",
   ) as MuPDFModule.PDFDocument;
 
   const pageCount = doc.countPages();
@@ -423,10 +420,30 @@ export async function redactPdf(
         if (quadGroup.length > 0) {
           // Use the bounding rect of all quads
           const firstQuad = quadGroup[0];
-          let minX = Math.min(firstQuad[0], firstQuad[2], firstQuad[4], firstQuad[6]);
-          let minY = Math.min(firstQuad[1], firstQuad[3], firstQuad[5], firstQuad[7]);
-          let maxX = Math.max(firstQuad[0], firstQuad[2], firstQuad[4], firstQuad[6]);
-          let maxY = Math.max(firstQuad[1], firstQuad[3], firstQuad[5], firstQuad[7]);
+          let minX = Math.min(
+            firstQuad[0],
+            firstQuad[2],
+            firstQuad[4],
+            firstQuad[6],
+          );
+          let minY = Math.min(
+            firstQuad[1],
+            firstQuad[3],
+            firstQuad[5],
+            firstQuad[7],
+          );
+          let maxX = Math.max(
+            firstQuad[0],
+            firstQuad[2],
+            firstQuad[4],
+            firstQuad[6],
+          );
+          let maxY = Math.max(
+            firstQuad[1],
+            firstQuad[3],
+            firstQuad[5],
+            firstQuad[7],
+          );
 
           for (const quad of quadGroup.slice(1)) {
             minX = Math.min(minX, quad[0], quad[2], quad[4], quad[6]);
@@ -476,7 +493,7 @@ export async function extractTextFromFile(file: File): Promise<string> {
 
 export function createRedactedTextFile(
   originalName: string,
-  redactedText: string
+  redactedText: string,
 ): ConvertedFile {
   const ext = originalName.split(".").pop()?.toLowerCase() ?? "txt";
   const baseName = originalName.replace(/\.[^.]+$/, "");
