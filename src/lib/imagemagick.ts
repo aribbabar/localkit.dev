@@ -247,17 +247,18 @@ export async function getImageInfo(file: File): Promise<ImageInfo> {
   return info;
 }
 
-/**
- * @deprecated This function was used for file size estimation, which has been removed.
- * It will always return null. Kept for backwards compatibility if referenced elsewhere.
- */
 export async function estimateOutputSize(
-  _file: File,
+  file: File,
   _info: ImageInfo,
-  _targetFormat: string,
-  _options: ConvertOptions = {},
+  targetFormat: string,
+  options: ConvertOptions = {},
 ): Promise<number | null> {
-  return null;
+  try {
+    const result = await convertImage(file, targetFormat, options);
+    return result.buffer.byteLength;
+  } catch {
+    return null;
+  }
 }
 
 export async function getAvailableOutputFormats() {

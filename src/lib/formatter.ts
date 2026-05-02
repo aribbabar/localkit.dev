@@ -65,6 +65,26 @@ function greet(user:User):string{return "Hello, "+user.name}`,
     filename: "main.tsx",
     placeholder: `const App:React.FC<{title:string}>=({title})=>{return <div><h1>{title}</h1></div>}`,
   },
+  {
+    id: "flow",
+    label: "Flow",
+    engine: "prettier",
+    group: "JavaScript / TypeScript",
+    shikiLang: "javascript",
+    parser: "flow",
+    filename: "main.js",
+    placeholder: `// @flow
+function multiply(a:number,b:number){return a*b}const result=multiply(3,4);console.log(result)`,
+  },
+  {
+    id: "javascript-clang",
+    label: "JavaScript (clang)",
+    engine: "clang-format",
+    group: "JavaScript / TypeScript",
+    shikiLang: "javascript",
+    filename: "main.js",
+    placeholder: `var nums=[1,2,3,4];nums.forEach(function(n){if(n%2===0){console.log("even",n)}else{console.log("odd",n)}})`,
+  },
   // ── Prettier: Markup ──────────────────────────────────────────────
   {
     id: "html",
@@ -152,6 +172,15 @@ const title=ref('Hello World')
     parser: "json",
     filename: "data.json",
     placeholder: `{"name":"project","version":"1.0.0","dependencies":{"react":"^19.0.0","typescript":"^5.0.0"},"scripts":{"dev":"vite","build":"vite build"}}`,
+  },
+  {
+    id: "json-clang",
+    label: "JSON (clang)",
+    engine: "clang-format",
+    group: "Data / Config",
+    shikiLang: "json",
+    filename: "data.json",
+    placeholder: `{"config":{"enabled":true,"timeout":5000,"hosts":["a.com","b.com"]}}`,
   },
   {
     id: "graphql",
@@ -388,6 +417,7 @@ async function getPrettier() {
       import("prettier/plugins/babel"),
       import("prettier/plugins/estree"),
       import("prettier/plugins/typescript"),
+      import("prettier/plugins/flow"),
       import("prettier/plugins/angular"),
       import("prettier/plugins/html"),
       import("prettier/plugins/postcss"),
@@ -397,11 +427,16 @@ async function getPrettier() {
       import("prettier/plugins/yaml"),
     ]);
   }
-  const [prettier, plugins] = await Promise.all([prettierPromise, prettierPlugins]);
+  const [prettier, plugins] = await Promise.all([
+    prettierPromise,
+    prettierPlugins,
+  ]);
   return { prettier, plugins };
 }
 
-type ClangFormat = { format: (source: string, filename: string, style: string) => string };
+type ClangFormat = {
+  format: (source: string, filename: string, style: string) => string;
+};
 let clangPromise: Promise<ClangFormat> | null = null;
 
 async function getClang(): Promise<ClangFormat> {
