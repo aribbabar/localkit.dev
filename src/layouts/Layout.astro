@@ -21,6 +21,19 @@ const {
   ogType = "website",
   noindex = false,
 } = Astro.props;
+
+function withTrailingSlash(url: string) {
+  const parsed = new URL(url, siteUrl);
+  const hasFileExtension = /\.[^/]+$/.test(parsed.pathname);
+
+  if (!hasFileExtension && !parsed.pathname.endsWith("/")) {
+    parsed.pathname += "/";
+  }
+
+  return parsed.href;
+}
+
+const canonicalUrl = withTrailingSlash(canonical);
 ---
 
 <!doctype html>
@@ -42,14 +55,14 @@ const {
     <!-- SEO -->
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
+    <link rel="canonical" href={canonicalUrl} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
 
     <!-- Open Graph -->
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content={ogType} />
-    <meta property="og:url" content={canonical} />
+    <meta property="og:url" content={canonicalUrl} />
     <meta property="og:site_name" content={siteName} />
     <meta property="og:image" content={ogImage} />
     <meta property="og:locale" content="en_US" />

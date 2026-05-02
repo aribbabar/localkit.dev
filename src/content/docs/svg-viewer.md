@@ -61,4 +61,4 @@ Yes — SVGs can contain JavaScript in `<script>` tags or event handlers. The vi
 Different renderers may interpret SVG slightly differently, especially around font rendering and filter effects. The viewer uses your browser's native SVG engine, which is the same engine that will render the SVG on the web.
 
 ### Can I export the SVG as a PNG?
-Not currently. For raster conversion, use the [Image Converter](/tools/image-converter) tool which can convert SVG to PNG and other formats.
+Not currently. For raster conversion, use the [Image Converter](/tools/image-converter/) tool which can convert SVG to PNG and other formats.

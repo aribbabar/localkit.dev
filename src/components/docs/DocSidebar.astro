@@ -34,7 +34,7 @@ const accentMap: Record<string, string> = {
       {/* Overview link */}
       {overviewDoc && (
         <a
-          href="/docs"
+          href="/docs/"
           class:list={[
             "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
             !currentSlug
@@ -55,7 +55,7 @@ const accentMap: Record<string, string> = {
         const isActive = currentSlug === doc.id;
         return (
           <a
-            href={`/docs/${doc.id}`}
+            href={`/docs/${doc.id}/`}
             class:list={[
               "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
               isActive

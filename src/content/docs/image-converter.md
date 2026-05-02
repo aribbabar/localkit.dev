@@ -68,7 +68,7 @@ There's no hard limit, but very large images (50MB+) may cause the browser to ru
 
 ### Does conversion preserve EXIF metadata?
 
-By default, metadata is preserved. Enable the **Strip metadata** checkbox to remove EXIF, color profiles, and all embedded metadata. If you need to inspect metadata, use the [Image Metadata](/tools/image-metadata) tool.
+By default, metadata is preserved. Enable the **Strip metadata** checkbox to remove EXIF, color profiles, and all embedded metadata. If you need to inspect metadata, use the [Image Metadata](/tools/image-metadata/) tool.
 
 ### What's the difference between lossy and lossless formats?
 
