@@ -1,8 +1,19 @@
-import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { FFmpeg, FFFSType } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
+import ffmpegWorkerURL from "@ffmpeg/ffmpeg/worker?url";
+import singleCoreURL from "@ffmpeg/core?url";
+import singleWasmURL from "@ffmpeg/core/wasm?url";
+import mtCoreURL from "@ffmpeg/core-mt?url";
+import mtWasmURL from "@ffmpeg/core-mt/wasm?url";
+import mtWorkerURL from "@ffmpeg/core-mt/worker?url";
+
+export type ConversionMode = "fast" | "balanced" | "small";
+export type ConversionStrategy = "transcode";
+export type FFmpegEngine = "multi-thread" | "single-thread";
 
 export interface VideoConvertOptions {
   format: string;
+  mode?: ConversionMode;
   quality?: string; // CRF value: "18" (high) to "35" (low)
   resolution?: string; // e.g. "1280x720", "1920x1080", or "" for original
   frameRate?: number; // e.g. 30, 24, 60, or 0 for original
@@ -11,10 +22,28 @@ export interface VideoConvertOptions {
   muteAudio?: boolean;
 }
 
+export interface ConversionTimings {
+  loadMs?: number;
+  mountMs?: number;
+  execMs?: number;
+  readMs?: number;
+  totalMs: number;
+}
+
 export interface ConvertedVideoFile {
   name: string;
   blob: Blob;
-  buffer: ArrayBuffer;
+  buffer?: ArrayBuffer;
+  strategy: ConversionStrategy;
+  timings: ConversionTimings;
+  engine?: FFmpegEngine;
+}
+
+export interface VideoConversionPlan {
+  strategy: ConversionStrategy;
+  inputExt: string;
+  outputExt: string;
+  requiresTranscode: boolean;
 }
 
 export const VIDEO_FORMATS = [
@@ -74,10 +103,28 @@ export const PRESET_OPTIONS = [
   { value: "slow", label: "Slow (better compression)" },
 ] as const;
 
+export const CONVERSION_MODE_OPTIONS = [
+  {
+    value: "fast",
+    label: "Fast",
+    description: "Faster transcode",
+  },
+  {
+    value: "balanced",
+    label: "Balanced",
+    description: "Re-encode normally",
+  },
+  {
+    value: "small",
+    label: "Small",
+    description: "Prefer compression",
+  },
+] as const;
+
 const AUDIO_ONLY_FORMATS = new Set(["mp3", "wav", "ogg", "aac", "flac"]);
 
 const MIME_MAP: Record<string, string> = Object.fromEntries(
-  VIDEO_FORMATS.map((f) => [f.ext, f.mime])
+  VIDEO_FORMATS.map((f) => [f.ext, f.mime]),
 );
 
 const ACCEPTED_VIDEO_TYPES = [
@@ -97,6 +144,13 @@ const ACCEPTED_VIDEO_TYPES = [
 const ACCEPTED_VIDEO_EXTENSIONS =
   /\.(mp4|webm|avi|mkv|mov|flv|ogv|ts|mpeg|mpg|3gp|wmv|m4v)$/i;
 
+let ffmpegInstance: FFmpeg | null = null;
+let loadPromise: Promise<void> | null = null;
+let selectedEngine: FFmpegEngine | null = null;
+let currentProgressCallback: ((progress: number) => void) | undefined;
+let currentLogCallback: ((message: string) => void) | undefined;
+let uniqueFileId = 0;
+
 export function isAcceptedVideo(file: File): boolean {
   return (
     ACCEPTED_VIDEO_TYPES.includes(file.type) ||
@@ -108,44 +162,103 @@ export const ACCEPTED_VIDEO_INPUT =
   "video/*,.mp4,.webm,.avi,.mkv,.mov,.flv,.ogv,.ts,.mpeg,.mpg,.3gp,.wmv,.m4v";
 
 export function isAudioOnlyFormat(ext: string): boolean {
-  return AUDIO_ONLY_FORMATS.has(ext);
+  return AUDIO_ONLY_FORMATS.has(ext.toLowerCase());
 }
 
-let ffmpegInstance: FFmpeg | null = null;
-let loadPromise: Promise<void> | null = null;
+export function isMultiThreadFFmpegAvailable(): boolean {
+  return (
+    typeof globalThis.SharedArrayBuffer !== "undefined" &&
+    "crossOriginIsolated" in globalThis &&
+    globalThis.crossOriginIsolated === true
+  );
+}
+
+export function getSelectedFFmpegEngine(): FFmpegEngine {
+  return (
+    selectedEngine ??
+    (isMultiThreadFFmpegAvailable() ? "multi-thread" : "single-thread")
+  );
+}
+
+export function planVideoConversion(
+  filename: string,
+  options: VideoConvertOptions,
+): VideoConversionPlan {
+  const inputExt = getFileExtension(filename) || "mp4";
+  const outputExt = options.format.toLowerCase();
+
+  return {
+    strategy: "transcode",
+    inputExt,
+    outputExt,
+    requiresTranscode: true,
+  };
+}
+
+export function buildVideoConversionArgs(
+  inputName: string,
+  outputName: string,
+  options: VideoConvertOptions,
+): string[] {
+  return buildTranscodeArgs(inputName, outputName, options);
+}
+
+export async function warmFFmpeg(
+  onLog?: (message: string) => void,
+): Promise<FFmpegEngine> {
+  const start = now();
+  await getFFmpeg(undefined, onLog);
+  onLog?.(
+    `FFmpeg warmed in ${formatMs(now() - start)} (${getSelectedFFmpegEngine()}).`,
+  );
+  return getSelectedFFmpegEngine();
+}
 
 async function getFFmpeg(
   onProgress?: (progress: number) => void,
-  onLog?: (message: string) => void
+  onLog?: (message: string) => void,
 ): Promise<FFmpeg> {
   if (!ffmpegInstance) {
     ffmpegInstance = new FFmpeg();
-  }
-
-  const ffmpeg = ffmpegInstance;
-
-  // Clear previous listeners
-  ffmpeg.on("progress", () => {});
-  ffmpeg.on("log", () => {});
-
-  if (onProgress) {
-    ffmpeg.on("progress", ({ progress }) => {
-      onProgress(Math.max(0, Math.min(1, progress)));
+    ffmpegInstance.on("progress", ({ progress }) => {
+      currentProgressCallback?.(Math.max(0, Math.min(1, progress)));
+    });
+    ffmpegInstance.on("log", ({ message }) => {
+      currentLogCallback?.(message);
     });
   }
 
-  if (onLog) {
-    ffmpeg.on("log", ({ message }) => {
-      onLog(message);
-    });
-  }
+  currentProgressCallback = onProgress;
+  currentLogCallback = onLog;
 
   if (!loadPromise) {
-    loadPromise = ffmpeg.load().then(() => {});
+    selectedEngine = isMultiThreadFFmpegAvailable()
+      ? "multi-thread"
+      : "single-thread";
+    const config =
+      selectedEngine === "multi-thread"
+        ? {
+            classWorkerURL: ffmpegWorkerURL,
+            coreURL: mtCoreURL,
+            wasmURL: mtWasmURL,
+            workerURL: mtWorkerURL,
+          }
+        : {
+            classWorkerURL: ffmpegWorkerURL,
+            coreURL: singleCoreURL,
+            wasmURL: singleWasmURL,
+          };
+
+    loadPromise = ffmpegInstance.load(config).then(() => {});
   }
 
   await loadPromise;
-  return ffmpeg;
+  return ffmpegInstance;
+}
+
+function getFileExtension(filename: string): string {
+  const dot = filename.lastIndexOf(".");
+  return dot > -1 ? filename.slice(dot + 1).toLowerCase() : "";
 }
 
 function changeExtension(filename: string, newExt: string): string {
@@ -154,19 +267,19 @@ function changeExtension(filename: string, newExt: string): string {
   return `${base}.${newExt}`;
 }
 
-function buildArgs(
+function buildTranscodeArgs(
   inputName: string,
   outputName: string,
-  options: VideoConvertOptions
+  options: VideoConvertOptions,
 ): string[] {
   const args: string[] = ["-i", inputName];
-  const isAudio = isAudioOnlyFormat(options.format);
+  const outputExt = options.format.toLowerCase();
+  const mode = options.mode ?? "fast";
+  const isAudio = isAudioOnlyFormat(outputExt);
 
   if (isAudio) {
-    // Audio extraction - no video
     args.push("-vn");
   } else {
-    // Video options
     if (options.resolution) {
       args.push("-vf", `scale=${options.resolution.replace("x", ":")}`);
     }
@@ -175,12 +288,10 @@ function buildArgs(
       args.push("-r", String(options.frameRate));
     }
 
-    if (options.format === "gif") {
-      // GIF-specific: use a reasonable fps and scale
+    if (outputExt === "gif") {
       if (!options.resolution) {
         args.push("-vf", "fps=10,scale=480:-1:flags=lanczos");
       } else {
-        // Replace existing -vf with one that includes fps
         const vfIdx = args.indexOf("-vf");
         if (vfIdx !== -1) {
           args[vfIdx + 1] = `fps=10,${args[vfIdx + 1]}:flags=lanczos`;
@@ -188,27 +299,23 @@ function buildArgs(
       }
     }
 
-    // Quality / CRF (applies to h264/libx264, libvpx)
-    if (options.quality) {
-      if (options.format === "webm") {
-        args.push("-crf", options.quality, "-b:v", "0");
-      } else if (options.format !== "gif") {
-        args.push("-crf", options.quality);
+    const quality = options.quality || (mode === "small" ? "28" : undefined);
+    if (quality) {
+      if (outputExt === "webm") {
+        args.push("-crf", quality, "-b:v", "0");
+      } else if (outputExt !== "gif") {
+        args.push("-crf", quality);
       }
     }
 
-    // Encoding preset (for h264)
-    if (
-      options.preset &&
-      !isAudio &&
-      options.format !== "gif" &&
-      options.format !== "webm"
-    ) {
-      args.push("-preset", options.preset);
+    const preset =
+      options.preset ||
+      (mode === "fast" ? "ultrafast" : mode === "small" ? "slow" : undefined);
+    if (preset && outputExt !== "gif" && outputExt !== "webm") {
+      args.push("-preset", preset);
     }
   }
 
-  // Audio options
   if (options.muteAudio && !isAudio) {
     args.push("-an");
   } else if (options.audioBitrate) {
@@ -219,57 +326,195 @@ function buildArgs(
   return args;
 }
 
+function now(): number {
+  return globalThis.performance?.now() ?? Date.now();
+}
+
+function formatMs(value: number): string {
+  return `${Math.round(value)}ms`;
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  if (bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength) {
+    return bytes.buffer as ArrayBuffer;
+  }
+  return bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ) as ArrayBuffer;
+}
+
+function makeFileNames(file: File, outputExt: string) {
+  const id = `${Date.now()}_${uniqueFileId++}`;
+  const inputExt = getFileExtension(file.name) || "mp4";
+  return {
+    id,
+    inputFileName: `input_${id}.${inputExt}`,
+    outputName: `output_${id}.${outputExt}`,
+    mountPoint: `/input_${id}`,
+  };
+}
+
+async function prepareInputFile(
+  ffmpeg: FFmpeg,
+  file: File,
+  inputFileName: string,
+  mountPoint: string,
+): Promise<{ inputName: string; mounted: boolean }> {
+  try {
+    await ffmpeg.createDir(mountPoint);
+    await ffmpeg.mount(
+      FFFSType.WORKERFS,
+      { blobs: [{ name: inputFileName, data: file }] },
+      mountPoint,
+    );
+    return { inputName: `${mountPoint}/${inputFileName}`, mounted: true };
+  } catch {
+    try {
+      await ffmpeg.unmount(mountPoint);
+    } catch {}
+    try {
+      await ffmpeg.deleteDir(mountPoint);
+    } catch {}
+
+    const inputData = await fetchFile(file);
+    await ffmpeg.writeFile(inputFileName, inputData);
+    return { inputName: inputFileName, mounted: false };
+  }
+}
+
+async function cleanupInput(
+  ffmpeg: FFmpeg,
+  inputName: string,
+  mountPoint: string,
+  mounted: boolean,
+): Promise<void> {
+  if (mounted) {
+    try {
+      await ffmpeg.unmount(mountPoint);
+    } catch {}
+    try {
+      await ffmpeg.deleteDir(mountPoint);
+    } catch {}
+    return;
+  }
+
+  try {
+    await ffmpeg.deleteFile(inputName);
+  } catch {}
+}
+
+async function readOutput(
+  ffmpeg: FFmpeg,
+  outputName: string,
+  options: VideoConvertOptions,
+  file: File,
+  strategy: ConversionStrategy,
+  timings: ConversionTimings,
+): Promise<ConvertedVideoFile> {
+  const readStart = now();
+  const outputData = await ffmpeg.readFile(outputName);
+  timings.readMs = now() - readStart;
+
+  const outputBytes =
+    outputData instanceof Uint8Array
+      ? outputData
+      : new TextEncoder().encode(outputData as string);
+  const buffer = toArrayBuffer(outputBytes);
+  const mime = MIME_MAP[options.format] || "application/octet-stream";
+
+  return {
+    name: changeExtension(file.name, options.format),
+    blob: new Blob([buffer], { type: mime }),
+    buffer,
+    strategy,
+    timings,
+    engine: getSelectedFFmpegEngine(),
+  };
+}
+
 export async function convertVideo(
   file: File,
   options: VideoConvertOptions,
   onProgress?: (progress: number) => void,
-  onLog?: (message: string) => void
+  onLog?: (message: string) => void,
 ): Promise<ConvertedVideoFile> {
-  const ffmpeg = await getFFmpeg(onProgress, onLog);
+  const totalStart = now();
+  const normalizedOptions: VideoConvertOptions = {
+    ...options,
+    format: options.format.toLowerCase(),
+    mode: options.mode ?? "fast",
+  };
+  const plan = planVideoConversion(file.name, normalizedOptions);
+  const timings: ConversionTimings = { totalMs: 0 };
 
-  const inputExt = file.name.split(".").pop() || "mp4";
-  const inputName = `input_${Date.now()}.${inputExt}`;
-  const outputName = `output_${Date.now()}.${options.format}`;
+  const loadStart = now();
+  const ffmpeg = await getFFmpeg(onProgress, onLog);
+  timings.loadMs = now() - loadStart;
+
+  const { inputFileName, outputName, mountPoint } = makeFileNames(
+    file,
+    normalizedOptions.format,
+  );
+  let inputName = inputFileName;
+  let mounted = false;
 
   try {
-    const inputData = await fetchFile(file);
-    await ffmpeg.writeFile(inputName, inputData);
+    const mountStart = now();
+    const prepared = await prepareInputFile(
+      ffmpeg,
+      file,
+      inputFileName,
+      mountPoint,
+    );
+    inputName = prepared.inputName;
+    mounted = prepared.mounted;
+    timings.mountMs = now() - mountStart;
+    onLog?.(
+      prepared.mounted
+        ? `Mounted ${file.name} with WORKERFS in ${formatMs(timings.mountMs)}.`
+        : `Copied ${file.name} into FFmpeg memory in ${formatMs(timings.mountMs)}.`,
+    );
 
-    const args = buildArgs(inputName, outputName, options);
+    const finalStrategy = plan.strategy;
+    const args = buildVideoConversionArgs(
+      inputName,
+      outputName,
+      normalizedOptions,
+    );
+
+    const execStart = now();
     const exitCode = await ffmpeg.exec(args);
+    timings.execMs = now() - execStart;
 
     if (exitCode !== 0) {
       throw new Error(`FFmpeg exited with code ${exitCode}`);
     }
 
-    const outputData = await ffmpeg.readFile(outputName);
-    let outputBytes: Uint8Array;
-    if (outputData instanceof Uint8Array) {
-      outputBytes = outputData;
-    } else {
-      outputBytes = new TextEncoder().encode(outputData as string);
-    }
+    timings.totalMs = now() - totalStart;
+    onLog?.(
+      `Finished ${file.name} with ${finalStrategy} in ${formatMs(
+        timings.totalMs,
+      )} (load ${formatMs(timings.loadMs ?? 0)}, input ${formatMs(
+        timings.mountMs ?? 0,
+      )}, exec ${formatMs(timings.execMs ?? 0)}).`,
+    );
 
-    const buffer = outputBytes.buffer.slice(
-      outputBytes.byteOffset,
-      outputBytes.byteOffset + outputBytes.byteLength
-    ) as ArrayBuffer;
-
-    const mime = MIME_MAP[options.format] || "application/octet-stream";
-
-    return {
-      name: changeExtension(file.name, options.format),
-      blob: new Blob([buffer], { type: mime }),
-      buffer,
-    };
+    return await readOutput(
+      ffmpeg,
+      outputName,
+      normalizedOptions,
+      file,
+      finalStrategy,
+      timings,
+    );
   } finally {
-    // Clean up files from memory
-    try {
-      await ffmpeg.deleteFile(inputName);
-    } catch {}
+    await cleanupInput(ffmpeg, inputName, mountPoint, mounted);
     try {
       await ffmpeg.deleteFile(outputName);
     } catch {}
+    currentProgressCallback = undefined;
+    currentLogCallback = undefined;
   }
 }
 
@@ -279,9 +524,9 @@ export async function convertBatch(
   onFileProgress?: (
     fileIndex: number,
     fileProgress: number,
-    total: number
+    total: number,
   ) => void,
-  onLog?: (message: string) => void
+  onLog?: (message: string) => void,
 ): Promise<ConvertedVideoFile[]> {
   const results: ConvertedVideoFile[] = [];
 
@@ -290,7 +535,7 @@ export async function convertBatch(
       files[i],
       options,
       (progress) => onFileProgress?.(i, progress, files.length),
-      onLog
+      onLog,
     );
     results.push(result);
     onFileProgress?.(i + 1, 0, files.length);

@@ -265,7 +265,7 @@ export default function LlmCostCalculatorApp() {
 
   return (
     <div className="space-y-5">
-      <section className={`${panelClass} overflow-hidden`}>
+      <section className={`${panelClass} overflow-visible`}>
         <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="space-y-6 p-5 sm:p-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

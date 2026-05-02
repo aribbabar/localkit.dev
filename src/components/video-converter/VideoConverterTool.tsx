@@ -1,5 +1,16 @@
-import { useState, type ChangeEvent, type DragEvent } from "react";
-import type { ConvertedVideoFile, VideoConvertOptions } from "../../lib/ffmpeg";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+} from "react";
+import type {
+  ConversionMode,
+  ConvertedVideoFile,
+  FFmpegEngine,
+  VideoConvertOptions,
+} from "../../lib/ffmpeg";
 
 let ffmpegLib: typeof import("../../lib/ffmpeg") | null = null;
 
@@ -18,19 +29,45 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+function formatStrategy(file: ConvertedVideoFile): string {
+  return file.strategy === "transcode" ? "Transcoded" : "Converted";
+}
+
+function getConvertedFileSize(file: ConvertedVideoFile): number {
+  return file.buffer?.byteLength ?? file.blob.size;
+}
+
+function formatMs(value?: number): string {
+  if (value === undefined) return "";
+  return `${Math.round(value)} ms`;
+}
+
 export default function VideoConverterTool() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [convertedFiles, setConvertedFiles] = useState<ConvertedVideoFile[]>([]);
+  const [convertedFiles, setConvertedFiles] = useState<ConvertedVideoFile[]>(
+    [],
+  );
   const [isDragging, setIsDragging] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [isZipping, setIsZipping] = useState(false);
   const [loadingFFmpeg, setLoadingFFmpeg] = useState(false);
-  const [progress, setProgress] = useState({ fileIndex: 0, fileProgress: 0, total: 0 });
+  const [warmingFFmpeg, setWarmingFFmpeg] = useState(false);
+  const [ffmpegEngine, setFfmpegEngine] = useState<FFmpegEngine | null>(null);
+  const [canUseThreads, setCanUseThreads] = useState(true);
+  const [progress, setProgress] = useState({
+    fileIndex: 0,
+    fileProgress: 0,
+    total: 0,
+  });
   const [logs, setLogs] = useState<string[]>([]);
   const [showLogs, setShowLogs] = useState(false);
+  const logBufferRef = useRef<string[]>([]);
+  const logFlushTimerRef = useRef<number | null>(null);
+  const warmPromiseRef = useRef<Promise<void> | null>(null);
 
   // Conversion options
   const [outputFormat, setOutputFormat] = useState("mp4");
+  const [conversionMode, setConversionMode] = useState<ConversionMode>("fast");
   const [quality, setQuality] = useState("23");
   const [resolution, setResolution] = useState("");
   const [frameRate, setFrameRate] = useState(0);
@@ -40,12 +77,62 @@ export default function VideoConverterTool() {
 
   const hasFiles = selectedFiles.length > 0;
 
+  useEffect(() => {
+    setCanUseThreads(
+      typeof SharedArrayBuffer !== "undefined" && window.crossOriginIsolated,
+    );
+    return () => {
+      if (logFlushTimerRef.current !== null) {
+        window.clearTimeout(logFlushTimerRef.current);
+      }
+    };
+  }, []);
+
+  function flushLogs() {
+    if (!logBufferRef.current.length) return;
+    const next = logBufferRef.current;
+    logBufferRef.current = [];
+    setLogs((prev) => [...prev, ...next].slice(-200));
+  }
+
+  function enqueueLog(message: string) {
+    logBufferRef.current.push(message);
+    if (logFlushTimerRef.current !== null) return;
+    logFlushTimerRef.current = window.setTimeout(() => {
+      logFlushTimerRef.current = null;
+      flushLogs();
+    }, 150);
+  }
+
+  async function warmEngine() {
+    if (warmPromiseRef.current) return warmPromiseRef.current;
+    setWarmingFFmpeg(true);
+    warmPromiseRef.current = getFFmpegLib()
+      .then((lib) =>
+        lib.warmFFmpeg((message) => {
+          enqueueLog(message);
+        }),
+      )
+      .then((engine) => {
+        setFfmpegEngine(engine);
+      })
+      .catch((err: any) => {
+        enqueueLog(`FFmpeg warmup failed: ${err?.message ?? String(err)}`);
+        warmPromiseRef.current = null;
+      })
+      .finally(() => {
+        setWarmingFFmpeg(false);
+      });
+    return warmPromiseRef.current;
+  }
+
   async function addFiles(files: File[]) {
     const lib = await getFFmpegLib();
     const accepted = files.filter(lib.isAcceptedVideo);
     if (!accepted.length) return;
     setSelectedFiles((prev) => [...prev, ...accepted]);
     setConvertedFiles([]);
+    void warmEngine();
   }
 
   function handleFileInputChange(e: ChangeEvent<HTMLInputElement>) {
@@ -90,21 +177,36 @@ export default function VideoConverterTool() {
     setLoadingFFmpeg(true);
     setConvertedFiles([]);
     setLogs([]);
+    logBufferRef.current = [];
     setProgress({ fileIndex: 0, fileProgress: 0, total: selectedFiles.length });
 
     try {
       const lib = await getFFmpegLib();
-      setLoadingFFmpeg(false);
+      if (warmPromiseRef.current) {
+        await warmPromiseRef.current;
+      }
+
+      const isAudioOutput = lib.isAudioOnlyFormat(outputFormat);
+      const selectedPreset =
+        outputFormat === "gif" || outputFormat === "webm"
+          ? undefined
+          : conversionMode === "fast"
+            ? "ultrafast"
+            : conversionMode === "small"
+              ? "slow"
+              : preset;
 
       const options: VideoConvertOptions = {
         format: outputFormat,
-        quality: lib.isAudioOnlyFormat(outputFormat) ? undefined : quality,
-        resolution: lib.isAudioOnlyFormat(outputFormat) ? undefined : resolution,
-        frameRate: lib.isAudioOnlyFormat(outputFormat) ? undefined : frameRate,
+        mode: conversionMode,
+        quality: isAudioOutput ? undefined : quality,
+        resolution: isAudioOutput ? undefined : resolution,
+        frameRate: isAudioOutput ? undefined : frameRate,
         audioBitrate: audioBitrate || undefined,
-        preset,
-        muteAudio: lib.isAudioOnlyFormat(outputFormat) ? false : muteAudio,
+        preset: selectedPreset,
+        muteAudio: isAudioOutput ? false : muteAudio,
       };
+      setLoadingFFmpeg(false);
 
       const results = await lib.convertBatch(
         selectedFiles,
@@ -113,10 +215,12 @@ export default function VideoConverterTool() {
           setProgress({ fileIndex, fileProgress, total });
         },
         (message) => {
-          setLogs((prev) => [...prev.slice(-200), message]);
-        }
+          enqueueLog(message);
+        },
       );
 
+      flushLogs();
+      setFfmpegEngine(lib.getSelectedFFmpegEngine());
       setConvertedFiles(results);
     } catch (err: any) {
       alert(`Conversion error: ${err?.message ?? String(err)}`);
@@ -148,7 +252,7 @@ export default function VideoConverterTool() {
       const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
       for (const file of convertedFiles) {
-        zip.file(file.name, file.buffer);
+        zip.file(file.name, file.buffer ?? file.blob);
       }
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
@@ -216,8 +320,15 @@ export default function VideoConverterTool() {
     { value: "medium", label: "Medium" },
     { value: "slow", label: "Slow (better compression)" },
   ];
+  const CONVERSION_MODE_OPTIONS = lib?.CONVERSION_MODE_OPTIONS ?? [
+    { value: "fast", label: "Fast", description: "Faster transcode" },
+    { value: "balanced", label: "Balanced", description: "Re-encode normally" },
+    { value: "small", label: "Small", description: "Prefer compression" },
+  ];
 
-  const isAudioOnly = lib?.isAudioOnlyFormat(outputFormat) ?? ["mp3", "wav", "ogg", "aac", "flac"].includes(outputFormat);
+  const isAudioOnly =
+    lib?.isAudioOnlyFormat(outputFormat) ??
+    ["mp3", "wav", "ogg", "aac", "flac"].includes(outputFormat);
 
   const overallProgress =
     progress.total > 0
@@ -289,7 +400,11 @@ export default function VideoConverterTool() {
                 stroke="currentColor"
                 strokeWidth="2"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {showLogs && (
@@ -308,7 +423,10 @@ export default function VideoConverterTool() {
           <div className="rounded-xl border border-border-card bg-bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-display text-sm font-semibold text-text-primary">
-                Selected Files <span className="text-text-muted">({selectedFiles.length})</span>
+                Selected Files{" "}
+                <span className="text-text-muted">
+                  ({selectedFiles.length})
+                </span>
               </h3>
               <button
                 type="button"
@@ -341,8 +459,12 @@ export default function VideoConverterTool() {
                     </svg>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-text-primary">{file.name}</p>
-                    <p className="text-[10px] text-text-muted">{formatSize(file.size)}</p>
+                    <p className="truncate text-xs font-medium text-text-primary">
+                      {file.name}
+                    </p>
+                    <p className="text-[10px] text-text-muted">
+                      {formatSize(file.size)}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -350,8 +472,18 @@ export default function VideoConverterTool() {
                     className="shrink-0 text-text-muted transition-colors hover:text-accent-red"
                     aria-label={`Remove ${file.name}`}
                   >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -370,7 +502,10 @@ export default function VideoConverterTool() {
             <div className="space-y-4">
               {/* Output format */}
               <div>
-                <label htmlFor="output-format" className="mb-1.5 block text-xs font-medium text-text-secondary">
+                <label
+                  htmlFor="output-format"
+                  className="mb-1.5 block text-xs font-medium text-text-secondary"
+                >
                   Output Format
                 </label>
                 <select
@@ -380,14 +515,18 @@ export default function VideoConverterTool() {
                   className="w-full rounded-lg border border-border-card bg-bg-secondary px-3 py-2 text-sm text-text-primary outline-none transition-all focus:border-border-card-hover focus:ring-1 focus:ring-border-card-hover"
                 >
                   <optgroup label="Video">
-                    {VIDEO_FORMATS.filter((f) => !f.mime.startsWith("audio/")).map((format) => (
+                    {VIDEO_FORMATS.filter(
+                      (f) => !f.mime.startsWith("audio/"),
+                    ).map((format) => (
                       <option key={format.ext} value={format.ext}>
                         {format.label}
                       </option>
                     ))}
                   </optgroup>
                   <optgroup label="Audio (extract)">
-                    {VIDEO_FORMATS.filter((f) => f.mime.startsWith("audio/")).map((format) => (
+                    {VIDEO_FORMATS.filter((f) =>
+                      f.mime.startsWith("audio/"),
+                    ).map((format) => (
                       <option key={format.ext} value={format.ext}>
                         {format.label}
                       </option>
@@ -396,12 +535,43 @@ export default function VideoConverterTool() {
                 </select>
               </div>
 
+              {/* Conversion mode */}
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+                  Conversion Mode
+                </label>
+                <div className="grid grid-cols-3 gap-1 rounded-lg border border-border-card bg-bg-secondary p-1">
+                  {CONVERSION_MODE_OPTIONS.map((mode) => (
+                    <button
+                      key={mode.value}
+                      type="button"
+                      onClick={() =>
+                        setConversionMode(mode.value as ConversionMode)
+                      }
+                      className={`rounded-md px-2 py-1.5 text-center transition-colors ${
+                        conversionMode === mode.value
+                          ? "bg-accent-blue text-white"
+                          : "text-text-muted hover:bg-bg-card hover:text-text-secondary"
+                      }`}
+                      title={mode.description}
+                    >
+                      <span className="block text-xs font-semibold">
+                        {mode.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Video-only settings */}
               {!isAudioOnly && (
                 <>
                   {/* Quality */}
                   <div>
-                    <label htmlFor="quality" className="mb-1.5 block text-xs font-medium text-text-secondary">
+                    <label
+                      htmlFor="quality"
+                      className="mb-1.5 block text-xs font-medium text-text-secondary"
+                    >
                       Quality
                     </label>
                     <select
@@ -420,7 +590,10 @@ export default function VideoConverterTool() {
 
                   {/* Resolution */}
                   <div>
-                    <label htmlFor="resolution" className="mb-1.5 block text-xs font-medium text-text-secondary">
+                    <label
+                      htmlFor="resolution"
+                      className="mb-1.5 block text-xs font-medium text-text-secondary"
+                    >
                       Resolution
                     </label>
                     <select
@@ -439,7 +612,10 @@ export default function VideoConverterTool() {
 
                   {/* Frame rate */}
                   <div>
-                    <label htmlFor="framerate" className="mb-1.5 block text-xs font-medium text-text-secondary">
+                    <label
+                      htmlFor="framerate"
+                      className="mb-1.5 block text-xs font-medium text-text-secondary"
+                    >
                       Frame Rate
                     </label>
                     <select
@@ -459,7 +635,10 @@ export default function VideoConverterTool() {
                   {/* Encoding preset */}
                   {outputFormat !== "gif" && outputFormat !== "webm" && (
                     <div>
-                      <label htmlFor="preset" className="mb-1.5 block text-xs font-medium text-text-secondary">
+                      <label
+                        htmlFor="preset"
+                        className="mb-1.5 block text-xs font-medium text-text-secondary"
+                      >
                         Encoding Speed
                       </label>
                       <select
@@ -499,10 +678,16 @@ export default function VideoConverterTool() {
                         stroke="currentColor"
                         strokeWidth="3"
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4.5 12.75l6 6 9-13.5"
+                        />
                       </svg>
                     </div>
-                    <span className="text-xs text-text-secondary">Remove audio track</span>
+                    <span className="text-xs text-text-secondary">
+                      Remove audio track
+                    </span>
                   </label>
                 </>
               )}
@@ -510,8 +695,12 @@ export default function VideoConverterTool() {
               {/* Audio bitrate (shown for all except muted) */}
               {!muteAudio && (
                 <div>
-                  <label htmlFor="audio-bitrate" className="mb-1.5 block text-xs font-medium text-text-secondary">
-                    Audio Bitrate <span className="text-text-muted">(optional)</span>
+                  <label
+                    htmlFor="audio-bitrate"
+                    className="mb-1.5 block text-xs font-medium text-text-secondary"
+                  >
+                    Audio Bitrate{" "}
+                    <span className="text-text-muted">(optional)</span>
                   </label>
                   <select
                     id="audio-bitrate"
@@ -536,7 +725,13 @@ export default function VideoConverterTool() {
               disabled={isConverting}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-accent-blue px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-accent-blue/80 hover:shadow-[0_0_24px_rgba(59,130,246,0.25)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -547,8 +742,21 @@ export default function VideoConverterTool() {
                 ? loadingFFmpeg
                   ? "Loading FFmpeg..."
                   : "Converting..."
-                : "Convert"}
+                : warmingFFmpeg
+                  ? "Warming FFmpeg..."
+                  : "Convert"}
             </button>
+            {hasFiles && !canUseThreads && (
+              <p className="mt-3 text-[10px] leading-relaxed text-text-muted">
+                Running single-threaded because cross-origin isolation is not
+                available in this browser session.
+              </p>
+            )}
+            {ffmpegEngine && (
+              <p className="mt-2 text-[10px] text-text-muted">
+                Engine ready: {ffmpegEngine}
+              </p>
+            )}
           </div>
         )}
 
@@ -573,8 +781,10 @@ export default function VideoConverterTool() {
             </div>
             {!loadingFFmpeg && (
               <p className="mt-2 text-[10px] text-text-muted">
-                File {Math.min(progress.fileIndex + 1, progress.total)} of {progress.total}
-                {progress.fileProgress > 0 && ` — ${Math.round(progress.fileProgress * 100)}%`}
+                File {Math.min(progress.fileIndex + 1, progress.total)} of{" "}
+                {progress.total}
+                {progress.fileProgress > 0 &&
+                  ` — ${Math.round(progress.fileProgress * 100)}%`}
               </p>
             )}
           </div>
@@ -593,21 +803,31 @@ export default function VideoConverterTool() {
                 disabled={isZipping}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-accent-green/30 bg-accent-green/10 px-3 py-1.5 text-xs font-medium text-accent-green transition-all hover:bg-accent-green/20 disabled:pointer-events-none disabled:opacity-50"
               >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
                   />
                 </svg>
-                {isZipping ? "Zipping..." : convertedFiles.length > 1 ? "Download ZIP" : "Download"}
+                {isZipping
+                  ? "Zipping..."
+                  : convertedFiles.length > 1
+                    ? "Download ZIP"
+                    : "Download"}
               </button>
             </div>
 
             <div className="space-y-2">
               {convertedFiles.map((file, index) => (
                 <div
-                  key={`${file.name}-${file.buffer.byteLength}-${index}`}
+                  key={`${file.name}-${getConvertedFileSize(file)}-${index}`}
                   className="flex items-center gap-3 rounded-lg border border-accent-green/20 bg-accent-green/5 px-3 py-2"
                 >
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-accent-green/10">
@@ -618,12 +838,24 @@ export default function VideoConverterTool() {
                       stroke="currentColor"
                       strokeWidth="2"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4.5 12.75l6 6 9-13.5"
+                      />
                     </svg>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-text-primary">{file.name}</p>
-                    <p className="text-[10px] text-text-muted">{formatSize(file.buffer.byteLength)}</p>
+                    <p className="truncate text-xs font-medium text-text-primary">
+                      {file.name}
+                    </p>
+                    <p className="text-[10px] text-text-muted">
+                      {formatSize(getConvertedFileSize(file))} ·{" "}
+                      {formatStrategy(file)}
+                      {file.timings.totalMs
+                        ? ` · ${formatMs(file.timings.totalMs)}`
+                        : ""}
+                    </p>
                   </div>
                   <button
                     type="button"

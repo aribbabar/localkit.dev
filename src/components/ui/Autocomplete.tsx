@@ -36,6 +36,7 @@ export default function Autocomplete({
   const [activeIndex, setActiveIndex] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const suppressFocusOpenRef = useRef(false);
   const listboxId = `${id}-listbox`;
   const selectedOption = options.find((option) => option.id === value);
 
@@ -72,11 +73,27 @@ export default function Autocomplete({
     setActiveIndex(0);
   }
 
+  function focusInput(openOnFocus = true) {
+    suppressFocusOpenRef.current = !openOnFocus;
+    inputRef.current?.focus({ preventScroll: true });
+
+    if (!openOnFocus) {
+      window.setTimeout(() => {
+        suppressFocusOpenRef.current = false;
+      }, 0);
+    }
+  }
+
+  function closeList() {
+    setIsOpen(false);
+    setQuery(selectedOption?.label ?? "");
+  }
+
   function chooseOption(option: AutocompleteOption) {
     onChange(option.id);
     setQuery(option.label);
     setIsOpen(false);
-    inputRef.current?.focus();
+    focusInput(false);
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -98,8 +115,7 @@ export default function Autocomplete({
       const option = filteredOptions[activeIndex];
       if (option) chooseOption(option);
     } else if (event.key === "Escape") {
-      setIsOpen(false);
-      setQuery(selectedOption?.label ?? "");
+      closeList();
     }
   }
 
@@ -130,7 +146,10 @@ export default function Autocomplete({
             setQuery(event.target.value);
             openList();
           }}
-          onFocus={openList}
+          onFocus={() => {
+            if (suppressFocusOpenRef.current) return;
+            openList();
+          }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className="w-full rounded-lg border border-border-card bg-bg-secondary px-3 py-2.5 pr-10 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted/50 focus:border-accent-teal/40 focus:ring-1 focus:ring-accent-teal/20"
@@ -138,9 +157,16 @@ export default function Autocomplete({
         <button
           type="button"
           aria-label={isOpen ? "Close model list" : "Open model list"}
+          onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
-            setIsOpen((open) => !open);
-            inputRef.current?.focus();
+            if (isOpen) {
+              closeList();
+              focusInput(false);
+              return;
+            }
+
+            openList();
+            focusInput();
           }}
           className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-card hover:text-text-secondary"
         >
@@ -174,6 +200,7 @@ export default function Autocomplete({
                 type="button"
                 role="option"
                 aria-selected={option.id === value}
+                onMouseDown={(event) => event.preventDefault()}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => chooseOption(option)}
                 className={`block w-full rounded-lg px-3 py-2 text-left transition-colors ${

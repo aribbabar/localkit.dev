@@ -15,6 +15,7 @@ The Video Converter lets you convert videos between formats — MP4, WebM, AVI, 
 ### Key Features
 
 - **Multiple formats** — MP4, WebM, AVI, MKV, MOV, OGV, and more
+- **Fast mode** — Uses faster encoder settings while still transcoding every selected file
 - **Codec selection** — Choose video and audio codecs
 - **Batch conversion** — Convert multiple videos at once
 - **Progress tracking** — Real-time progress bar during conversion
@@ -22,15 +23,16 @@ The Video Converter lets you convert videos between formats — MP4, WebM, AVI, 
 
 ## Architecture
 
-The converter uses [FFmpeg WASM](https://github.com/nicolo-ribaudo/ffmpeg-wasm), a WebAssembly port of FFmpeg. This is the largest WASM module in LocalKit (~30MB), so it uses careful lazy loading and caching.
+The converter uses [FFmpeg WASM](https://github.com/nicolo-ribaudo/ffmpeg-wasm), a WebAssembly port of FFmpeg. This is the largest WASM module in LocalKit (~30MB), so it uses careful lazy loading and caching. LocalKit serves the FFmpeg core assets from the built site instead of downloading them from a third-party CDN at conversion time.
 
 ### Processing Pipeline
 
-1. **File input** — User drops video files. Files are read as `ArrayBuffer` via the File API.
-2. **WASM init** — FFmpeg WASM loads on first use. This includes the core module and codec libraries.
-3. **Virtual filesystem** — Input files are written to FFmpeg's in-memory filesystem (MEMFS).
-4. **Conversion** — FFmpeg runs the conversion command with the selected format and codec options.
-5. **Output** — The converted file is read from MEMFS and offered as a Blob URL download.
+1. **File input** — User drops video files. FFmpeg starts warming as soon as valid files are selected.
+2. **Plan** — Every selected file is planned as a transcode so quality, compression, audio, and transform settings are always applied consistently.
+3. **WASM init** — FFmpeg WASM loads from local build assets. Multi-threaded core is used when cross-origin isolation is available; otherwise the converter falls back to single-threaded core.
+4. **Virtual filesystem** — Inputs are mounted with `WORKERFS` when supported to avoid an extra full copy into MEMFS, with MEMFS copy as a fallback.
+5. **Conversion** — FFmpeg runs the planned transcode command with the selected format and codec options.
+6. **Output** — The converted file is read from FFmpeg's filesystem and offered as a Blob URL download.
 
 ### Code Structure
 
@@ -52,7 +54,8 @@ Video files are typically large and sensitive. All conversion happens in your br
 ## Technical Details
 
 - **WASM module size**: ~30MB (loaded on demand, cached by browser)
-- **Threading**: Multi-threaded via SharedArrayBuffer (where available)
+- **Threading**: Multi-threaded via SharedArrayBuffer when cross-origin isolation is available; single-thread fallback otherwise
+- **Fast mode**: always transcodes, using faster encoder settings by default
 - **Supported formats**: MP4, WebM, AVI, MKV, MOV, OGV, FLV, and more
 - **Video codecs**: H.264, VP8, VP9, and others
 - **Audio codecs**: AAC, Opus, Vorbis, MP3
@@ -61,13 +64,17 @@ Video files are typically large and sensitive. All conversion happens in your br
 ## FAQs
 
 ### Why is the first conversion slow?
+
 The FFmpeg WASM module (~30MB) needs to be downloaded and compiled on first use. Subsequent conversions in the same session are much faster since the module is already in memory. The browser also caches the download.
 
 ### Why does the video converter need special browser headers?
+
 FFmpeg uses multi-threading for performance, which requires `SharedArrayBuffer`. For security, browsers only enable this API when the page is cross-origin isolated. LocalKit sets the required headers automatically.
 
 ### Is there a file size limit?
+
 There's no hard limit, but video processing is memory-intensive. Files over 500MB may cause issues on devices with limited RAM. For very large files, a native FFmpeg installation is recommended.
 
 ### Can I extract audio from a video?
+
 Yes — select an audio-only output format (like MP3 or OGG) to extract just the audio track.
