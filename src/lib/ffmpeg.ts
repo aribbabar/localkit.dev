@@ -1,11 +1,6 @@
 import { FFmpeg, FFFSType } from "@ffmpeg/ffmpeg";
-import { fetchFile } from "@ffmpeg/util";
+import { fetchFile, toBlobURL } from "@ffmpeg/util";
 import ffmpegWorkerURL from "@ffmpeg/ffmpeg/worker?url";
-import singleCoreURL from "@ffmpeg/core?url";
-import singleWasmURL from "@ffmpeg/core/wasm?url";
-import mtCoreURL from "@ffmpeg/core-mt?url";
-import mtWasmURL from "@ffmpeg/core-mt/wasm?url";
-import mtWorkerURL from "@ffmpeg/core-mt/worker?url";
 
 export type ConversionMode = "fast" | "balanced" | "small";
 export type ConversionStrategy = "transcode";
@@ -144,12 +139,20 @@ const ACCEPTED_VIDEO_TYPES = [
 const ACCEPTED_VIDEO_EXTENSIONS =
   /\.(mp4|webm|avi|mkv|mov|flv|ogv|ts|mpeg|mpg|3gp|wmv|m4v)$/i;
 
+const FFMPEG_CORE_VERSION = "0.12.10";
+const FFMPEG_CDN_BASE = "https://cdn.jsdelivr.net/npm";
+const SINGLE_THREAD_CORE_BASE_URL = `${FFMPEG_CDN_BASE}/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/umd`;
+const MULTI_THREAD_CORE_BASE_URL = `${FFMPEG_CDN_BASE}/@ffmpeg/core-mt@${FFMPEG_CORE_VERSION}/dist/umd`;
+
+type FFmpegLoadConfig = NonNullable<Parameters<FFmpeg["load"]>[0]>;
+
 let ffmpegInstance: FFmpeg | null = null;
 let loadPromise: Promise<void> | null = null;
 let selectedEngine: FFmpegEngine | null = null;
 let currentProgressCallback: ((progress: number) => void) | undefined;
 let currentLogCallback: ((message: string) => void) | undefined;
 let uniqueFileId = 0;
+const coreConfigPromises = new Map<FFmpegEngine, Promise<FFmpegLoadConfig>>();
 
 export function isAcceptedVideo(file: File): boolean {
   return (
@@ -235,25 +238,73 @@ async function getFFmpeg(
     selectedEngine = isMultiThreadFFmpegAvailable()
       ? "multi-thread"
       : "single-thread";
-    const config =
-      selectedEngine === "multi-thread"
-        ? {
-            classWorkerURL: ffmpegWorkerURL,
-            coreURL: mtCoreURL,
-            wasmURL: mtWasmURL,
-            workerURL: mtWorkerURL,
-          }
-        : {
-            classWorkerURL: ffmpegWorkerURL,
-            coreURL: singleCoreURL,
-            wasmURL: singleWasmURL,
-          };
 
-    loadPromise = ffmpegInstance.load(config).then(() => {});
+    loadPromise = getFFmpegCoreConfig(selectedEngine, onLog)
+      .then((config) => ffmpegInstance?.load(config))
+      .then(() => {});
   }
 
   await loadPromise;
   return ffmpegInstance;
+}
+
+function getFFmpegCoreConfig(
+  engine: FFmpegEngine,
+  onLog?: (message: string) => void,
+): Promise<FFmpegLoadConfig> {
+  const cachedConfig = coreConfigPromises.get(engine);
+
+  if (cachedConfig) {
+    return cachedConfig;
+  }
+
+  const configPromise =
+    engine === "multi-thread"
+      ? createMultiThreadCoreConfig(onLog)
+      : createSingleThreadCoreConfig(onLog);
+
+  coreConfigPromises.set(engine, configPromise);
+  return configPromise;
+}
+
+async function createSingleThreadCoreConfig(
+  onLog?: (message: string) => void,
+): Promise<FFmpegLoadConfig> {
+  onLog?.("Downloading FFmpeg core...");
+
+  return {
+    classWorkerURL: ffmpegWorkerURL,
+    coreURL: await toBlobURL(
+      `${SINGLE_THREAD_CORE_BASE_URL}/ffmpeg-core.js`,
+      "text/javascript",
+    ),
+    wasmURL: await toBlobURL(
+      `${SINGLE_THREAD_CORE_BASE_URL}/ffmpeg-core.wasm`,
+      "application/wasm",
+    ),
+  };
+}
+
+async function createMultiThreadCoreConfig(
+  onLog?: (message: string) => void,
+): Promise<FFmpegLoadConfig> {
+  onLog?.("Downloading multi-threaded FFmpeg core...");
+
+  return {
+    classWorkerURL: ffmpegWorkerURL,
+    coreURL: await toBlobURL(
+      `${MULTI_THREAD_CORE_BASE_URL}/ffmpeg-core.js`,
+      "text/javascript",
+    ),
+    wasmURL: await toBlobURL(
+      `${MULTI_THREAD_CORE_BASE_URL}/ffmpeg-core.wasm`,
+      "application/wasm",
+    ),
+    workerURL: await toBlobURL(
+      `${MULTI_THREAD_CORE_BASE_URL}/ffmpeg-core.worker.js`,
+      "text/javascript",
+    ),
+  };
 }
 
 function getFileExtension(filename: string): string {

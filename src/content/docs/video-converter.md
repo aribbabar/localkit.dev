@@ -23,13 +23,13 @@ The Video Converter lets you convert videos between formats — MP4, WebM, AVI, 
 
 ## Architecture
 
-The converter uses [FFmpeg WASM](https://github.com/nicolo-ribaudo/ffmpeg-wasm), a WebAssembly port of FFmpeg. This is the largest WASM module in LocalKit (~30MB), so it uses careful lazy loading and caching. LocalKit serves the FFmpeg core assets from the built site instead of downloading them from a third-party CDN at conversion time.
+The converter uses [FFmpeg WASM](https://github.com/nicolo-ribaudo/ffmpeg-wasm), a WebAssembly port of FFmpeg. This is the largest runtime dependency in LocalKit (~30MB), so it uses careful lazy loading and browser caching. LocalKit downloads the FFmpeg core from a pinned CDN URL at conversion time so the static site stays within hosting asset limits.
 
 ### Processing Pipeline
 
 1. **File input** — User drops video files. FFmpeg starts warming as soon as valid files are selected.
 2. **Plan** — Every selected file is planned as a transcode so quality, compression, audio, and transform settings are always applied consistently.
-3. **WASM init** — FFmpeg WASM loads from local build assets. Multi-threaded core is used when cross-origin isolation is available; otherwise the converter falls back to single-threaded core.
+3. **WASM init** — FFmpeg WASM loads from a pinned CDN URL. Multi-threaded core is used when cross-origin isolation is available; otherwise the converter falls back to single-threaded core.
 4. **Virtual filesystem** — Inputs are mounted with `WORKERFS` when supported to avoid an extra full copy into MEMFS, with MEMFS copy as a fallback.
 5. **Conversion** — FFmpeg runs the planned transcode command with the selected format and codec options.
 6. **Output** — The converted file is read from FFmpeg's filesystem and offered as a Blob URL download.
@@ -49,7 +49,7 @@ FFmpeg WASM uses multi-threading for performance, which requires `SharedArrayBuf
 
 ## Privacy & Security
 
-Video files are typically large and sensitive. All conversion happens in your browser — files are never uploaded. The FFmpeg WASM module processes video entirely in memory using its virtual filesystem. No data leaves your device.
+Video files are typically large and sensitive. The FFmpeg runtime is downloaded on demand, but conversion happens in your browser and files are never uploaded. The FFmpeg WASM module processes video entirely in memory using its virtual filesystem.
 
 ## Technical Details
 
@@ -65,7 +65,7 @@ Video files are typically large and sensitive. All conversion happens in your br
 
 ### Why is the first conversion slow?
 
-The FFmpeg WASM module (~30MB) needs to be downloaded and compiled on first use. Subsequent conversions in the same session are much faster since the module is already in memory. The browser also caches the download.
+The FFmpeg WASM module (~30MB) needs to be downloaded and compiled on first use. Subsequent conversions in the same session are much faster since the module is already in memory. The browser also caches the runtime download.
 
 ### Why does the video converter need special browser headers?
 
