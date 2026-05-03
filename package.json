@@ -46,10 +46,16 @@
     "vite-plugin-wasm": "^3.6.0"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.9",
     "@faker-js/faker": "^10.4.0",
     "@types/turndown": "^5.0.6",
     "prettier": "3.8.3",
     "prettier-plugin-astro": "0.14.1",
+    "typescript": "^5.9.3",
     "vitest": "^4.0.18"
+  },
+  "overrides": {
+    "uuid": "14.0.0",
+    "yaml": "2.8.4"
   }
 }
