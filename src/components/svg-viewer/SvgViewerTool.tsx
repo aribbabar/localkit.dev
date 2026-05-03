@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { validateSvg, hasAnimation } from "../../lib/svg";
 
 type BgMode = "dark" | "light" | "checker";
@@ -28,16 +28,14 @@ export default function SvgViewerTool() {
   const [svgCode, setSvgCode] = useState("");
   const [bgMode, setBgMode] = useState<BgMode>("checker");
   const [zoom, setZoom] = useState(100);
-  const [isPaused, setIsPaused] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const isPlaceholder = !svgCode;
   const displayCode = svgCode || SAMPLE_SVG;
 
-  // Validate SVG and build blob URL as image/svg+xml (native XML parsing)
+  // Validate SVG and build a Blob URL for browser-native image rendering.
   useEffect(() => {
     const validationError = validateSvg(displayCode);
     setError(isPlaceholder ? null : validationError);
@@ -47,8 +45,6 @@ export default function SvgViewerTool() {
       return;
     }
 
-    // Serve as image/svg+xml so the browser parses it as native XML —
-    // CDATA, xmlns:xlink, namespaces, etc. all work correctly.
     const blob = new Blob([displayCode], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
     setBlobUrl(url);
@@ -60,45 +56,6 @@ export default function SvgViewerTool() {
   const isAnimated = useMemo(() => {
     return hasAnimation(displayCode);
   }, [displayCode]);
-
-  // Toggle animation pause/play via iframe document
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    const toggle = () => {
-      try {
-        const doc = iframe.contentDocument;
-        if (!doc) return;
-        const svgEl = doc.querySelector("svg") ?? doc.documentElement;
-        if (
-          !svgEl ||
-          typeof (svgEl as SVGSVGElement).pauseAnimations !== "function"
-        )
-          return;
-
-        if (isPaused) {
-          (svgEl as SVGSVGElement).pauseAnimations();
-          svgEl.style.animationPlayState = "paused";
-          svgEl.querySelectorAll("*").forEach((el) => {
-            (el as HTMLElement).style.animationPlayState = "paused";
-          });
-        } else {
-          (svgEl as SVGSVGElement).unpauseAnimations();
-          svgEl.style.animationPlayState = "running";
-          svgEl.querySelectorAll("*").forEach((el) => {
-            (el as HTMLElement).style.animationPlayState = "running";
-          });
-        }
-      } catch {
-        // cross-origin safety
-      }
-    };
-
-    iframe.addEventListener("load", toggle);
-    toggle();
-    return () => iframe.removeEventListener("load", toggle);
-  }, [isPaused, blobUrl]);
 
   const handleCopy = useCallback(() => {
     if (!svgCode) return;
@@ -121,7 +78,6 @@ export default function SvgViewerTool() {
 
   const handleLoadSample = useCallback(() => {
     setSvgCode(SAMPLE_SVG);
-    setIsPaused(false);
   }, []);
 
   return (
@@ -175,29 +131,6 @@ export default function SvgViewerTool() {
             Reset
           </button>
         </div>
-
-        {/* Animation controls */}
-        {isAnimated && (
-          <button
-            onClick={() => setIsPaused((p) => !p)}
-            className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all border ${
-              isPaused
-                ? "border-accent-orange/25 bg-accent-orange/10 text-accent-orange"
-                : "border-accent-green/25 bg-accent-green/10 text-accent-green"
-            }`}
-          >
-            {isPaused ? (
-              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            ) : (
-              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-              </svg>
-            )}
-            {isPaused ? "Play" : "Pause"}
-          </button>
-        )}
       </div>
 
       {/* Preview area */}
@@ -231,7 +164,7 @@ export default function SvgViewerTool() {
             </button>
           </div>
         )}
-        {/* Background container behind the iframe */}
+        {/* Background container behind the preview image */}
         <div
           className="flex items-center justify-center overflow-auto"
           style={{
@@ -241,18 +174,15 @@ export default function SvgViewerTool() {
           }}
         >
           {blobUrl && (
-            <iframe
-              ref={iframeRef}
+            <img
               src={blobUrl}
-              title="SVG Preview"
-              sandbox="allow-same-origin"
-              className="block border-0"
+              alt="SVG preview"
+              className="block object-contain"
               style={{
-                width: "100%",
-                height: "300px",
+                maxWidth: "100%",
+                maxHeight: "300px",
                 transform: `scale(${zoom / 100})`,
                 transformOrigin: "center center",
-                background: "transparent",
               }}
             />
           )}
@@ -348,10 +278,7 @@ export default function SvgViewerTool() {
         </div>
         <textarea
           value={svgCode}
-          onChange={(e) => {
-            setSvgCode(e.target.value);
-            setIsPaused(false);
-          }}
+          onChange={(e) => setSvgCode(e.target.value)}
           placeholder={
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">...</svg>'
           }
