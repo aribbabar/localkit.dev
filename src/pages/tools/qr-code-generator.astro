@@ -1,0 +1,89 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Navbar from "../../components/Navbar.astro";
+import Footer from "../../components/Footer.astro";
+import QrCodeGeneratorApp from "../../components/qr-code-generator/QrCodeGeneratorApp";
+import { ArrowLeft, QrCode, ShieldCheck } from "@lucide/astro";
+
+const pageTitle = "QR Code Generator — LocalKit";
+const pageDescription =
+  "Generate styled QR codes with colors, logo options, saved preferences, and PNG, SVG, WebP, or JPEG downloads. Everything runs locally in your browser.";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "QR Code Generator",
+  url: "https://localkit.dev/tools/qr-code-generator/",
+  description: pageDescription,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Any (browser-based)",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  featureList: [
+    "Styled QR code generation",
+    "Custom colors and dot styles",
+    "Logo URL and uploaded logo support",
+    "PNG, SVG, WebP, and JPEG downloads",
+    "Saved local style preferences",
+    "Reset to default settings",
+    "100% client-side processing",
+  ],
+  isPartOf: {
+    "@type": "WebSite",
+    name: "LocalKit",
+    url: "https://localkit.dev",
+  },
+};
+---
+
+<Layout
+  title={pageTitle}
+  description={pageDescription}
+  ogImage="https://localkit.dev/og/qr-code-generator.png"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </Fragment>
+  <Navbar />
+
+  <main class="relative pt-24 pb-16 md:pt-32 md:pb-24">
+    <div class="relative mx-auto max-w-7xl px-6">
+      <div class="mb-8">
+        <a
+          href="/"
+          class="mb-4 inline-flex items-center gap-1.5 text-xs text-text-muted transition-colors hover:text-text-secondary"
+        >
+          <ArrowLeft class="h-3.5 w-3.5" />
+          Back to tools
+        </a>
+        <div class="flex items-center gap-3">
+          <div
+            class="flex h-10 w-10 items-center justify-center rounded-lg border border-accent-teal/20 bg-accent-teal/10"
+          >
+            <QrCode class="h-5 w-5 text-accent-teal" />
+          </div>
+          <div>
+            <h1 class="font-display text-2xl font-bold text-text-primary">
+              QR Code Generator
+            </h1>
+            <p class="text-sm text-text-muted">
+              Generate styled QR codes with saved local preferences
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="mb-6 inline-flex items-center gap-2 rounded-full border border-border-card bg-bg-secondary px-3 py-1"
+      >
+        <ShieldCheck class="h-3.5 w-3.5 text-accent-green" />
+        <span class="text-xs text-text-secondary"
+          >Runs locally — QR content is not uploaded or saved</span
+        >
+      </div>
+
+      <QrCodeGeneratorApp client:load />
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
