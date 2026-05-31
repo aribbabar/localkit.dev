@@ -1,0 +1,3 @@
+http://localkit.dev/* https://localkit.dev/:splat 301
+http://www.localkit.dev/* https://localkit.dev/:splat 301
+https://www.localkit.dev/* https://localkit.dev/:splat 301

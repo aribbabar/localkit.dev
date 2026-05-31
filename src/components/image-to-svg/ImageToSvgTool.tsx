@@ -74,10 +74,7 @@ const TURN_POLICY_LABELS = [
 
 const POTRACE_PRESET_IDS = Object.keys(POTRACE_PRESETS) as PotracePresetId[];
 
-function matchesPreset<T extends object>(
-  options: T,
-  presetOptions: T,
-) {
+function matchesPreset<T extends object>(options: T, presetOptions: T) {
   return Object.keys(presetOptions).every(
     (key) => options[key as keyof T] === presetOptions[key as keyof T],
   );
