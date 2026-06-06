@@ -14,6 +14,14 @@ const accentColors: Record<string, string> = {
 
 const tools = [
   {
+    slug: "image-collage-maker",
+    title: "Image Collage Maker",
+    description:
+      "Auto-arrange multiple images into one balanced collage with divider edits and local export.",
+    accent: "purple",
+    category: "Image",
+  },
+  {
     slug: "image-converter",
     title: "Image Converter",
     description:
