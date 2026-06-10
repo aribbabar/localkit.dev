@@ -12,6 +12,7 @@ import {
   type QrExportExtension,
   type QrShape,
 } from "./preferences";
+import styles from "./QrCodeGenerator.module.css";
 
 type QrCodeStylingInstance = {
   append: (container: HTMLElement) => void;
@@ -68,6 +69,18 @@ const EXPORT_OPTIONS: Array<{ value: QrExportExtension; label: string }> = [
   { value: "webp", label: "WebP" },
   { value: "jpeg", label: "JPEG" },
 ];
+
+const segmentedButtonClass = (
+  active: boolean,
+  detail: boolean = false,
+): string =>
+  [
+    "flex flex-col items-start gap-0.5 rounded-lg border px-2.5 py-1.5 text-left text-xs font-medium transition-colors",
+    active
+      ? "border-accent-teal/35 bg-accent-teal/10 text-accent-teal"
+      : "border-border-card bg-bg-secondary text-text-secondary hover:border-border-card-hover hover:text-text-primary",
+    detail ? "" : "",
+  ].join(" ");
 
 export default function QrCodeGeneratorApp() {
   const savedPreferences = useMemo(loadQrCodeGeneratorPreferences, []);
@@ -210,290 +223,374 @@ export default function QrCodeGeneratorApp() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
-      <section className="rounded-2xl border border-border-card bg-bg-card/80 p-5">
-        <div className="flex items-start justify-between gap-4">
+    <div className="grid min-h-[70vh] grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
+      {/* Top bar: QR content + shape */}
+      <section
+        aria-label="QR content"
+        className="flex flex-col gap-3.5 rounded-2xl border border-border-card bg-bg-card/80 p-4 lg:col-span-3"
+      >
+        <header className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-teal">
+            <p className="m-0 text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-accent-teal">
               QR content
             </p>
-            <h2 className="mt-2 font-display text-xl font-bold text-text-primary">
+            <h2 className="mt-1 font-display text-base font-bold text-text-primary">
               Encode text or a URL
             </h2>
           </div>
           <button
             type="button"
             onClick={resetToDefaults}
-            className="rounded-full border border-border-card px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-border-card-hover hover:text-text-primary"
+            className="inline-flex items-center gap-2 rounded-full border border-border-card bg-transparent px-3.5 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-border-card-hover hover:text-text-primary"
           >
             Reset
           </button>
-        </div>
+        </header>
 
-        <label className="mt-5 block">
-          <span className="mb-2 block text-sm font-medium text-text-secondary">
-            QR data
-          </span>
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="qr-data"
+            className="text-xs font-medium text-text-secondary"
+          >
+            Data
+          </label>
           <textarea
+            id="qr-data"
             value={data}
             onChange={(event) => setData(event.target.value)}
             spellCheck={false}
-            className="min-h-32 w-full resize-y rounded-xl border border-border-card bg-bg-secondary/70 p-3 font-mono text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-muted/50 focus:border-accent-teal/40 focus:ring-1 focus:ring-accent-teal/20"
             placeholder="https://example.com or any text"
+            className="min-h-18 w-full resize-y rounded-xl border border-border-card bg-bg-secondary/70 px-3 py-2.5 font-mono text-[0.8125rem] leading-6 text-text-primary outline-none transition-colors placeholder:text-text-muted/50 focus:border-accent-teal/40 focus:ring-1 focus:ring-accent-teal/20"
           />
-        </label>
+        </div>
 
-        <div className="mt-5 space-y-5">
-          <NumberSlider
-            label="Size"
-            min={160}
-            max={720}
-            value={preferences.size}
-            suffix="px"
-            onChange={(value) => updatePreference("size", value)}
-          />
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-xs font-medium text-text-secondary">
+            Shape
+          </legend>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(64px,1fr))] gap-1.5">
+            {(
+              [
+                { value: "square", label: "Square" },
+                { value: "circle", label: "Circle" },
+              ] satisfies Array<{ value: QrShape; label: string }>
+            ).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => updatePreference("shape", option.value)}
+                aria-pressed={preferences.shape === option.value}
+                className={segmentedButtonClass(
+                  preferences.shape === option.value,
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      </section>
 
-          <NumberSlider
-            label="Margin"
-            min={0}
-            max={80}
-            value={preferences.margin}
-            suffix="px"
-            onChange={(value) => updatePreference("margin", value)}
-          />
+      {/* Left panel: visual style */}
+      <section
+        aria-label="QR style"
+        className="flex flex-col gap-3.5 rounded-2xl border border-border-card bg-bg-card/80 p-4 lg:row-start-2"
+      >
+        <header>
+          <p className="m-0 text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-accent-teal">
+            Style
+          </p>
+          <h2 className="mt-1 font-display text-base font-bold text-text-primary">
+            Dots, corners &amp; background
+          </h2>
+        </header>
 
-          <SegmentedControl
-            label="Shape"
-            options={[
-              { value: "square" as QrShape, label: "Square" },
-              { value: "circle" as QrShape, label: "Circle" },
-            ]}
-            value={preferences.shape}
-            onChange={(value) => updatePreference("shape", value)}
-          />
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-xs font-medium text-text-secondary">
+            Dots
+          </legend>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(64px,1fr))] gap-1.5">
+            {DOT_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => updatePreference("dotType", option.value)}
+                aria-pressed={preferences.dotType === option.value}
+                className={segmentedButtonClass(
+                  preferences.dotType === option.value,
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
 
-          <SegmentedControl
-            label="Error correction"
-            options={ERROR_CORRECTION_OPTIONS}
-            value={preferences.errorCorrectionLevel}
-            onChange={(value) =>
-              updatePreference("errorCorrectionLevel", value)
-            }
+        <ColorInput
+          label="Dot color"
+          value={preferences.dotColor}
+          onChange={(value) => updatePreference("dotColor", value)}
+        />
+
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-xs font-medium text-text-secondary">
+            Corner square
+          </legend>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(64px,1fr))] gap-1.5">
+            {CORNER_SQUARE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  updatePreference("cornerSquareType", option.value)
+                }
+                aria-pressed={preferences.cornerSquareType === option.value}
+                className={segmentedButtonClass(
+                  preferences.cornerSquareType === option.value,
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <ColorInput
+          label="Corner square color"
+          value={preferences.cornerSquareColor}
+          onChange={(value) => updatePreference("cornerSquareColor", value)}
+        />
+
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-xs font-medium text-text-secondary">
+            Corner dot
+          </legend>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(64px,1fr))] gap-1.5">
+            {CORNER_DOT_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => updatePreference("cornerDotType", option.value)}
+                aria-pressed={preferences.cornerDotType === option.value}
+                className={segmentedButtonClass(
+                  preferences.cornerDotType === option.value,
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <ColorInput
+          label="Corner dot color"
+          value={preferences.cornerDotColor}
+          onChange={(value) => updatePreference("cornerDotColor", value)}
+        />
+
+        <ColorInput
+          label="Background"
+          value={preferences.backgroundColor}
+          onChange={(value) => updatePreference("backgroundColor", value)}
+        />
+      </section>
+
+      {/* Center stage: preview + size/margin + error correction */}
+      <section
+        aria-label="QR preview"
+        className="flex min-w-0 items-center justify-center lg:row-start-2"
+      >
+        <div>
+          <div
+            ref={previewRef}
+            aria-live="polite"
+            className={`${styles.stageSurface} flex aspect-square w-[clamp(260px,38vw,460px)] items-center justify-center rounded-2xl border border-border-card p-5 [&>div]:flex [&>div]:h-full [&>div]:w-full [&>div]:items-center [&>div]:justify-center [&_svg]:block [&_svg]:h-auto [&_svg]:max-w-full [&_img]:block [&_img]:h-auto [&_img]:max-w-full [&_canvas]:block [&_canvas]:h-auto [&_canvas]:max-w-full`}
           />
+          <p className="mt-3 min-h-4 text-center text-xs text-text-muted">
+            {status}
+          </p>
+
+          <div className="mt-3.5 grid w-[clamp(260px,38vw,460px)] gap-3">
+            <NumberSlider
+              label="Size"
+              min={160}
+              max={720}
+              suffix="px"
+              value={preferences.size}
+              onChange={(value) => updatePreference("size", value)}
+            />
+            <NumberSlider
+              label="Margin"
+              min={0}
+              max={80}
+              suffix="px"
+              value={preferences.margin}
+              onChange={(value) => updatePreference("margin", value)}
+            />
+            <fieldset className="flex flex-col gap-1.5">
+              <legend className="text-xs font-medium text-text-secondary">
+                Error correction
+              </legend>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(64px,1fr))] gap-1.5">
+                {ERROR_CORRECTION_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() =>
+                      updatePreference("errorCorrectionLevel", option.value)
+                    }
+                    aria-pressed={
+                      preferences.errorCorrectionLevel === option.value
+                    }
+                    className={segmentedButtonClass(
+                      preferences.errorCorrectionLevel === option.value,
+                    )}
+                  >
+                    <span>{option.label}</span>
+                    <span className="text-[0.625rem] opacity-75">
+                      {option.detail}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          </div>
         </div>
       </section>
 
-      <section className="min-w-0 rounded-2xl border border-border-card bg-bg-card/80 p-5">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-          <div className="flex min-w-0 flex-1 items-center justify-center rounded-2xl border border-border-card bg-white p-5">
-            <div
-              ref={previewRef}
-              className="flex aspect-square w-full max-w-[440px] items-center justify-center"
-              aria-live="polite"
-            />
-          </div>
+      {/* Right panel: logo controls */}
+      <section
+        aria-label="Logo options"
+        className="flex flex-col gap-3.5 rounded-2xl border border-border-card bg-bg-card/80 p-4 lg:row-start-2"
+      >
+        <header>
+          <p className="m-0 text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-accent-teal">
+            Logo
+          </p>
+          <h2 className="mt-1 font-display text-base font-bold text-text-primary">
+            Overlay a brand mark
+          </h2>
+        </header>
 
-          <div className="w-full lg:w-72">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-teal">
-              Export
-            </p>
-            <h2 className="mt-2 font-display text-xl font-bold text-text-primary">
-              Download QR code
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-text-muted">{status}</p>
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="logo-url"
+            className="text-xs font-medium text-text-secondary"
+          >
+            Logo URL
+          </label>
+          <input
+            id="logo-url"
+            type="url"
+            value={preferences.imageUrl}
+            onChange={(event) =>
+              updatePreference("imageUrl", event.target.value)
+            }
+            placeholder="https://example.com/logo.svg"
+            className="w-full rounded-lg border border-border-card bg-bg-secondary px-3 py-1.5 text-[0.8125rem] text-text-primary outline-none transition-colors placeholder:text-text-muted/50 focus:border-accent-teal/40 focus:ring-1 focus:ring-accent-teal/20"
+          />
+        </div>
 
-            <div className="mt-5">
-              <SegmentedControl
-                label="File type"
-                options={EXPORT_OPTIONS}
-                value={preferences.exportExtension}
-                onChange={(value) => updatePreference("exportExtension", value)}
-              />
-            </div>
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="logo-upload"
+            className="text-xs font-medium text-text-secondary"
+          >
+            Upload logo
+          </label>
+          <input
+            id="logo-upload"
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            onChange={(event) => useUploadedLogo(event.target.files?.[0])}
+            className="w-full rounded-lg border border-border-card bg-bg-secondary px-2 py-1.5 text-xs text-text-secondary outline-none file:mr-2.5 file:rounded-full file:border-0 file:bg-accent-teal/10 file:px-3 file:py-1 file:text-[0.6875rem] file:font-medium file:text-accent-teal"
+          />
+        </div>
+
+        {uploadedImageUrl && (
+          <button
+            type="button"
+            onClick={removeUploadedLogo}
+            className="inline-flex w-fit items-center gap-2 rounded-full border border-border-card bg-transparent px-3.5 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-border-card-hover hover:text-text-primary"
+          >
+            Remove uploaded logo
+          </button>
+        )}
+
+        <NumberSlider
+          label="Logo size"
+          min={10}
+          max={50}
+          suffix="%"
+          value={Math.round(preferences.imageSize * 100)}
+          onChange={(value) => updatePreference("imageSize", value / 100)}
+        />
+
+        <NumberSlider
+          label="Logo margin"
+          min={0}
+          max={40}
+          suffix="px"
+          value={preferences.imageMargin}
+          onChange={(value) => updatePreference("imageMargin", value)}
+        />
+
+        <ToggleRow
+          checked={preferences.hideBackgroundDots}
+          label="Hide dots under logo"
+          onChange={(checked) =>
+            updatePreference("hideBackgroundDots", checked)
+          }
+        />
+      </section>
+
+      {/* Bottom bar: export + download */}
+      <section
+        aria-label="Export"
+        className="flex flex-col gap-3.5 rounded-2xl border border-border-card bg-bg-card/80 p-4 lg:col-span-3"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <p className="m-0 min-w-48 flex-1 text-xs text-text-muted">
+            {isReady
+              ? `Ready to download as ${preferences.exportExtension.toUpperCase()}.`
+              : "Rendering preview..."}
+          </p>
+
+          <div className="flex flex-wrap items-end gap-3">
+            <fieldset className="flex min-w-64 flex-col gap-1.5">
+              <legend className="text-xs font-medium text-text-secondary">
+                File type
+              </legend>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(64px,1fr))] gap-1.5">
+                {EXPORT_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() =>
+                      updatePreference("exportExtension", option.value)
+                    }
+                    aria-pressed={preferences.exportExtension === option.value}
+                    className={segmentedButtonClass(
+                      preferences.exportExtension === option.value,
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
 
             <button
               type="button"
               onClick={downloadQrCode}
               disabled={!isReady}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-accent-teal/25 bg-accent-teal/10 px-4 py-2.5 text-sm font-medium text-accent-teal transition-colors hover:bg-accent-teal/15 disabled:pointer-events-none disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full border border-accent-teal/25 bg-accent-teal/10 px-5 py-2 text-[0.8125rem] font-medium text-accent-teal transition-colors hover:bg-accent-teal/15 disabled:pointer-events-none disabled:opacity-50"
             >
-              Download
+              Download QR code
             </button>
           </div>
         </div>
-
-        <div className="mt-6 grid gap-5 lg:grid-cols-2">
-          <StylePanel title="Dots">
-            <SegmentedControl
-              label="Dot style"
-              options={DOT_OPTIONS}
-              value={preferences.dotType}
-              onChange={(value) => updatePreference("dotType", value)}
-            />
-            <ColorInput
-              label="Dot color"
-              value={preferences.dotColor}
-              onChange={(value) => updatePreference("dotColor", value)}
-            />
-          </StylePanel>
-
-          <StylePanel title="Corners">
-            <SegmentedControl
-              label="Corner square"
-              options={CORNER_SQUARE_OPTIONS}
-              value={preferences.cornerSquareType}
-              onChange={(value) => updatePreference("cornerSquareType", value)}
-            />
-            <ColorInput
-              label="Square color"
-              value={preferences.cornerSquareColor}
-              onChange={(value) => updatePreference("cornerSquareColor", value)}
-            />
-            <SegmentedControl
-              label="Corner dot"
-              options={CORNER_DOT_OPTIONS}
-              value={preferences.cornerDotType}
-              onChange={(value) => updatePreference("cornerDotType", value)}
-            />
-            <ColorInput
-              label="Dot color"
-              value={preferences.cornerDotColor}
-              onChange={(value) => updatePreference("cornerDotColor", value)}
-            />
-          </StylePanel>
-
-          <StylePanel title="Background">
-            <ColorInput
-              label="Background color"
-              value={preferences.backgroundColor}
-              onChange={(value) => updatePreference("backgroundColor", value)}
-            />
-          </StylePanel>
-
-          <StylePanel title="Logo">
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-text-secondary">
-                Logo URL
-              </span>
-              <input
-                type="url"
-                value={preferences.imageUrl}
-                onChange={(event) =>
-                  updatePreference("imageUrl", event.target.value)
-                }
-                placeholder="https://example.com/logo.svg"
-                className="w-full rounded-lg border border-border-card bg-bg-secondary px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted/50 focus:border-accent-teal/40 focus:ring-1 focus:ring-accent-teal/20"
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-text-secondary">
-                Upload logo
-              </span>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                onChange={(event) => useUploadedLogo(event.target.files?.[0])}
-                className="w-full rounded-lg border border-border-card bg-bg-secondary px-3 py-2 text-sm text-text-secondary file:mr-3 file:rounded-full file:border-0 file:bg-accent-teal/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent-teal"
-              />
-            </label>
-
-            {uploadedImageUrl && (
-              <button
-                type="button"
-                onClick={removeUploadedLogo}
-                className="rounded-full border border-border-card px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-border-card-hover hover:text-text-primary"
-              >
-                Remove uploaded logo
-              </button>
-            )}
-
-            <NumberSlider
-              label="Logo size"
-              min={10}
-              max={50}
-              value={Math.round(preferences.imageSize * 100)}
-              suffix="%"
-              onChange={(value) => updatePreference("imageSize", value / 100)}
-            />
-
-            <NumberSlider
-              label="Logo margin"
-              min={0}
-              max={40}
-              value={preferences.imageMargin}
-              suffix="px"
-              onChange={(value) => updatePreference("imageMargin", value)}
-            />
-
-            <ToggleRow
-              checked={preferences.hideBackgroundDots}
-              label="Hide dots under logo"
-              onChange={(checked) =>
-                updatePreference("hideBackgroundDots", checked)
-              }
-            />
-          </StylePanel>
-        </div>
       </section>
-    </div>
-  );
-}
-
-function StylePanel({
-  children,
-  title,
-}: {
-  children: React.ReactNode;
-  title: string;
-}) {
-  return (
-    <div className="rounded-xl border border-border-card bg-bg-secondary/45 p-4">
-      <h3 className="font-display text-sm font-semibold text-text-primary">
-        {title}
-      </h3>
-      <div className="mt-4 space-y-4">{children}</div>
-    </div>
-  );
-}
-
-function SegmentedControl<T extends string>({
-  label,
-  onChange,
-  options,
-  value,
-}: {
-  label: string;
-  onChange: (value: T) => void;
-  options: Array<{ value: T; label: string; detail?: string }>;
-  value: T;
-}) {
-  return (
-    <div>
-      <label className="mb-2 block text-sm font-medium text-text-secondary">
-        {label}
-      </label>
-      <div className="grid grid-cols-2 gap-2">
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onChange(option.value)}
-            className={`rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors ${
-              value === option.value
-                ? "border-accent-teal/35 bg-accent-teal/10 text-accent-teal"
-                : "border-border-card bg-bg-secondary text-text-secondary hover:border-border-card-hover hover:text-text-primary"
-            }`}
-          >
-            <span className="block">{option.label}</span>
-            {option.detail && (
-              <span className="mt-0.5 block text-[10px] text-current/70">
-                {option.detail}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -514,12 +611,12 @@ function NumberSlider({
   value: number;
 }) {
   return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <label className="text-sm font-medium text-text-secondary">
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-3">
+        <label className="text-xs font-medium text-text-secondary">
           {label}
         </label>
-        <span className="rounded-md border border-border-card bg-bg-secondary px-2.5 py-0.5 font-mono text-sm text-text-primary">
+        <span className="rounded-md border border-border-card bg-bg-secondary px-2.5 py-0.5 font-mono text-xs text-text-primary">
           {value}
           {suffix}
         </span>
@@ -530,9 +627,9 @@ function NumberSlider({
         max={max}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="w-full cursor-pointer accent-[var(--color-accent-teal)]"
+        className={styles.range}
       />
-      <div className="mt-1 flex justify-between text-[10px] text-text-muted">
+      <div className="flex justify-between font-mono text-[0.625rem] text-text-muted">
         <span>
           {min}
           {suffix}
@@ -556,25 +653,26 @@ function ColorInput({
   value: string;
 }) {
   return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-text-secondary">
-        {label}
-      </span>
-      <span className="flex items-center gap-3 rounded-lg border border-border-card bg-bg-secondary px-3 py-2">
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-text-secondary">{label}</label>
+      <span className="flex items-center gap-2 rounded-lg border border-border-card bg-bg-secondary px-2 py-1">
         <input
           type="color"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0"
+          aria-label={`${label} color picker`}
+          className="h-7 w-9 cursor-pointer rounded border-0 bg-transparent p-0"
         />
         <input
           type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="min-w-0 flex-1 bg-transparent font-mono text-sm text-text-primary outline-none"
+          spellCheck={false}
+          aria-label={`${label} hex value`}
+          className="min-w-0 flex-1 bg-transparent font-mono text-xs text-text-primary outline-none"
         />
       </span>
-    </label>
+    </div>
   );
 }
 
@@ -590,25 +688,28 @@ function ToggleRow({
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
+      className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
         checked
           ? "border-accent-teal/35 bg-accent-teal/10 text-accent-teal"
           : "border-border-card bg-bg-secondary text-text-secondary hover:border-border-card-hover hover:text-text-primary"
       }`}
     >
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-xs font-medium">{label}</span>
       <span
-        className={`relative inline-flex h-5 w-9 items-center rounded-full border transition-colors ${
+        aria-hidden="true"
+        className={`relative inline-flex h-[1.125rem] w-8 items-center rounded-full border ${
           checked
             ? "border-current bg-current/10"
             : "border-border-card bg-bg-primary"
         }`}
       >
         <span
-          className={`absolute h-3.5 w-3.5 rounded-full transition-transform ${
+          className={`absolute h-[0.8125rem] w-[0.8125rem] rounded-full transition-transform ${
             checked
-              ? "translate-x-4 bg-current"
+              ? "translate-x-[calc(2rem-0.8125rem-2px)] bg-current"
               : "translate-x-0.5 bg-text-muted"
           }`}
         />

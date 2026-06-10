@@ -1,0 +1,46 @@
+/* QR Code Generator — center-canvas layout
+   Small CSS module for the few things Tailwind utilities can't express:
+   - the range slider's pseudo-element thumb (::part/-webkit-slider-thumb)
+   - the QR preview surface's bespoke drop shadow
+   Keep this file minimal — most styling lives in Tailwind classes. */
+
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-accent-teal);
+  border: 2px solid var(--color-bg-primary);
+  cursor: pointer;
+  box-shadow: 0 0 6px
+    color-mix(in srgb, var(--color-accent-teal) 50%, transparent);
+}
+
+.range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-accent-teal);
+  border: 2px solid var(--color-bg-primary);
+  cursor: pointer;
+  box-shadow: 0 0 6px
+    color-mix(in srgb, var(--color-accent-teal) 50%, transparent);
+}
+
+.stageSurface {
+  background: #ffffff;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.4) inset,
+    0 18px 40px -22px rgba(15, 16, 41, 0.55);
+}
